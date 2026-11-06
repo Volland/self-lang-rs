@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Try Self — Self World</title>
+  <meta name="description" content="A Rust implementation of the Self programming language with a modern outliner desktop.">
+  <meta name="theme-color" content="#0e1016">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='12' y='2' width='18' height='18' rx='5' fill='%238b7bff' fill-opacity='.55'/%3E%3Crect x='2' y='12' width='18' height='18' rx='5' fill='%238b7bff'/%3E%3C/svg%3E" type="image/svg+xml">
+  <style>
+    :root {
+      --bg: #0e1016; --panel: #13161e; --win: #171b24; --raised: #20252f; --stroke: #2c3240;
+      --text: #e6e9f0; --faint: #8a93a6; --accent: #8b7bff; --ok: #5ed6a0; --err: #ff6b6b;
+      --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); color: var(--text); }
+    body { font: 15px/1.5 -apple-system, "Segoe UI", system-ui, Helvetica, Arial, sans-serif; overflow: hidden; }
+    body.lite { overflow: auto; }
+    canvas#the_canvas_id { position: fixed; inset: 0; width: 100%; height: 100%; display: block; outline: none; touch-action: none; }
+    body.lite canvas#the_canvas_id { display: none; }
+    #home-link { position: fixed; left: 12px; bottom: 12px; z-index: 5; font-size: 13px; color: var(--faint);
+      background: var(--panel); border: 1px solid var(--stroke); border-radius: 999px; padding: 4px 12px; }
+    #home-link a { color: var(--faint); text-decoration: none; }
+    #home-link a:hover { color: var(--text); }
+    #home-link:hover { border-color: var(--accent); }
+    body.lite #home-link { display: none; }
+    #loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 14px; color: var(--faint); text-align: center; padding: 24px; }
+    .mark { position: relative; width: 34px; height: 34px; flex: none; }
+    .mark i { position: absolute; width: 21px; height: 21px; border-radius: 6px; }
+    .mark i:first-child { left: 11px; top: 0; background: #8b7bff8c; }
+    .mark i:last-child { left: 0; top: 12px; background: var(--accent); }
+    #loading .mark { animation: pulse 1.4s ease-in-out infinite; }
+    #loading strong { color: var(--text); font-size: 17px; }
+    @keyframes pulse { 50% { transform: scale(0.88); opacity: 0.7; } }
+
+    /* text shell used when the browser cannot draw the desktop */
+    #lite { display: none; min-height: 100%; }
+    body.lite #lite { display: flex; flex-direction: column; }
+    #lite header { display: flex; align-items: center; gap: 12px; padding: 10px 18px; background: var(--panel); border-bottom: 1px solid var(--stroke); }
+    #lite header .mark { width: 26px; height: 26px; transform: scale(0.8); }
+    #lite header h1 { font-size: 16.5px; margin: 0; }
+    #lite header p { margin: 0 0 0 auto; color: var(--faint); font-size: 12.5px; }
+    #lite main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; padding: 18px; max-width: 1240px; width: 100%; margin: 0 auto; }
+    .card { background: var(--win); border: 1px solid var(--stroke); border-radius: 12px; padding: 14px; box-shadow: 0 10px 28px #0007; min-width: 0; }
+    .card h2 { font-size: 15px; margin: 0 0 10px; }
+    #history { display: flex; flex-direction: column; gap: 8px; max-height: 52vh; overflow: auto; margin-bottom: 10px; }
+    .entry { border-bottom: 1px solid var(--stroke); padding-bottom: 8px; }
+    .entry pre { margin: 0; font: 13.5px/1.45 var(--mono); white-space: pre-wrap; word-break: break-word; }
+    .entry .src::before { content: "› "; color: var(--accent); }
+    .entry .out { color: var(--faint); }
+    .entry .res { color: var(--ok); padding-left: 14px; }
+    .entry .res.err { color: var(--err); }
+    .entry .ms { color: var(--faint); font-size: 11.5px; padding-left: 14px; }
+    textarea { width: 100%; min-height: 76px; resize: vertical; background: #0b0d12; color: var(--text); border: 1px solid var(--stroke);
+      border-radius: 8px; padding: 8px 10px; font: 13.5px/1.45 var(--mono); outline: none; }
+    textarea:focus { border-color: var(--accent); }
+    .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+    button { font: inherit; font-size: 14px; color: var(--text); background: var(--raised); border: 1px solid var(--stroke); border-radius: 7px; padding: 4px 12px; cursor: pointer; }
+    button:hover { border-color: var(--accent); background: #2a264d; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    .hint { color: var(--faint); font-size: 12.5px; }
+    nav ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+    nav button { width: 100%; text-align: left; background: transparent; border-color: transparent; padding: 4px 8px; }
+    nav button:hover { background: var(--raised); }
+    #lite footer { color: var(--faint); font-size: 12.5px; text-align: center; padding: 10px 18px 18px; }
+    @media (max-width: 760px) {
+      #lite main { grid-template-columns: minmax(0, 1fr); padding: 12px; }
+      #lite header p { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="the_canvas_id"></canvas>
+  <nav id="home-link" aria-label="Site"><a href="../" title="What is Self? Back to the homepage">← About Self</a> · <a href="../play/" title="A plain text editor and shell for Self">Playground</a> · <a href="../book/" title="No, I Am Your Father: a mini book about Self">Book</a></nav>
+  <input type="file" id="file_input" accept=".self,text/plain" multiple hidden>
+  <div id="loading">
+    <div class="mark"><i></i><i></i></div>
+    <strong>Self World</strong>
+    <span>Starting the Self virtual machine…</span>
+    <noscript>Self World needs JavaScript and WebAssembly.</noscript>
+  </div>
+
+  <div id="lite">
+    <header>
+      <div class="mark"><i></i><i></i></div>
+      <h1><a href="../" style="color:inherit;text-decoration:none">Self World</a></h1>
+      <p>This browser can't draw the full outliner desktop (no WebGL), so here is the Self shell.</p>
+    </header>
+    <main>
+      <section class="card" aria-label="Shell">
+        <h2>Shell</h2>
+        <div id="history"></div>
+        <label class="hint" for="input">Self code — Enter runs it, Shift + Enter adds a line</label>
+        <textarea id="input" spellcheck="false" placeholder="(3 @ 4) + (1 @ 1)"></textarea>
+        <div class="row">
+          <button class="primary" id="run">Run ⏎</button>
+          <button id="clear">Clear</button>
+          <button id="load">Load a .self file…</button>
+          <button id="selftest">Run the self-test</button>
+          <span class="hint">self = shell (inherits the lobby) · you can also drop .self files here</span>
+        </div>
+      </section>
+      <nav class="card" aria-label="Examples">
+        <h2>Examples</h2>
+        <ul id="examples"></ul>
+      </nav>
+    </main>
+    <footer>The Self language, implemented in Rust. The same program runs as a desktop app on macOS, Linux and Windows. <a href="../" style="color:var(--accent)">What is Self?</a> · <a href="https://github.com/Volland/self-lang-rs" style="color:var(--accent)">Source on GitHub</a></footer>
+  </div>
+
+  <script type="module">
+    // The page may be served for a deeper address (for example by a server that
+    // answers every path with this page). The program files sit next to the
+    // real index page, so load them from the folder path, or the site root
+    // when the address is not a folder.
+    // This page lives in try/; the program files sit one folder up, next to the homepage.
+    const path = location.pathname;
+    const dir = path.endsWith('/') ? path : path.replace(/[^/]*$/, '');
+    const base = dir + '../';
+    const { default: init, start_desktop, eval_self, example_list, queue_file, load_self } = await import(base + 'selfworld.js');
+    const fileInput = document.getElementById('file_input');
+    // the full desktop asks for files through this picker; the text shell sets its own handler
+    let onFiles = async (files) => { for (const f of files) queue_file(f.name, await f.text()); };
+    fileInput.addEventListener('change', async () => { await onFiles([...fileInput.files]); fileInput.value = ''; });
+
+    const loading = document.getElementById('loading');
+    const hasWebGL = () => {
+      try {
+        const c = document.createElement('canvas');
+        return !!(c.getContext('webgl2') || c.getContext('webgl'));
+      } catch (e) { return false; }
+    };
+
+    function startLite() {
+      document.body.classList.add('lite');
+      loading.remove();
+      const history = document.getElementById('history');
+      const input = document.getElementById('input');
+      const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; e.textContent = text; return e; };
+      const show = (label, r) => {
+        const entry = el('div', 'entry', '');
+        entry.append(el('pre', 'src', label));
+        if (r.printed) entry.append(el('pre', 'out', r.printed.replace(/\n$/, '')));
+        entry.append(el('pre', 'res' + (r.ok ? '' : ' err'), (r.ok ? '' : '⚠ ') + r.result));
+        for (const t of r.trace) entry.append(el('pre', 'ms', 'in ' + t));
+        for (const n of (r.notes || [])) entry.append(el('pre', 'res err', '⚠ ' + n));
+        if (r.ok) entry.append(el('div', 'ms', r.ms.toFixed(1) + ' ms'));
+        history.append(entry);
+        history.scrollTop = history.scrollHeight;
+      };
+      const run = (code) => { if (code.trim()) show(code, eval_self(code)); };
+      onFiles = async (files) => {
+        for (const f of files) {
+          const text = await f.text();
+          show('load ' + f.name + '   (' + text.split('\n').length + ' lines)', load_self(f.name, text));
+        }
+      };
+      document.getElementById('load').onclick = () => fileInput.click();
+      document.getElementById('selftest').onclick = () => run('selfTest run');
+      document.addEventListener('dragover', (e) => e.preventDefault());
+      document.addEventListener('drop', (e) => { e.preventDefault(); onFiles([...e.dataTransfer.files]); });
+      document.getElementById('run').onclick = () => { run(input.value); input.value = ''; input.focus(); };
+      document.getElementById('clear').onclick = () => { history.textContent = ''; };
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); run(input.value); input.value = ''; }
+      });
+      const list = document.getElementById('examples');
+      for (const [title, code] of example_list()) {
+        const li = document.createElement('li');
+        const b = el('button', '', title);
+        b.title = code;
+        b.onclick = () => { input.value = code; input.focus(); };
+        li.append(b);
+        list.append(li);
+      }
+      run('(3 @ 4) + (1 @ 1)');
+    }
+
+    try {
+      await init({ module_or_path: base + 'selfworld_bg.wasm' });
+      if (hasWebGL()) {
+        try {
+          await start_desktop('the_canvas_id');
+          loading.remove();
+        } catch (e) {
+          startLite();
+        }
+      } else {
+        startLite();
+      }
+    } catch (e) {
+      loading.innerHTML = '<p>Self World could not start: ' + String(e).replace(/</g, '&lt;') + '</p>';
+    }
+  </script>
+</body>
+</html>

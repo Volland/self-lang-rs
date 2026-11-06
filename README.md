@@ -1,6 +1,13 @@
 # Self World
 
-**Try it in your browser: <https://volland.github.io/self-lang-rs/>** — the same Rust program, compiled to WebAssembly.
+**Website: <https://volland.github.io/self-lang-rs/>** — what Self is, a runnable five-minute tutorial, its history, family tree and influence on JavaScript.
+**Playground: <https://volland.github.io/self-lang-rs/play/>** — a plain editor and transcript for running Self; works without WebGL, can stop runaway programs, and shares code as links.
+**Book: <https://volland.github.io/self-lang-rs/book/>** — *No, I Am Your Father*, a mini book about Self, Smalltalk, prototypes, fast VMs and JavaScript, with runnable code.
+**Desktop: <https://volland.github.io/self-lang-rs/try/>** — the full Self World desktop, the same Rust program compiled to WebAssembly.
+
+The web pages live in `web/`: `index.html` (home and tour), `play.html`, `book.html` and `try.html` (desktop).
+`engine.js` loads the Self engine for the playground and the book, running it in a Web Worker
+(`engine-worker.js`) so a program that never ends can be stopped. `npm run build` puts the site in `dist/`.
 
 The [Self programming language](https://selflanguage.org) re-implemented in Rust, with a modern
 take on Self's outliner desktop. One program runs in a web browser and as a native app on

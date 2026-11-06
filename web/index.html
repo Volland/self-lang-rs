@@ -3,187 +3,539 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Self World — the Self language in your browser</title>
-  <meta name="description" content="A Rust implementation of the Self programming language with a modern outliner desktop.">
+  <title>Self World — the language with no classes (that made JavaScript fast)</title>
+  <meta name="description" content="Learn Self, the prototype-based language behind JavaScript's objects and the fast virtual machines of Java and Chrome. Run it right here, in your browser.">
+  <meta property="og:title" content="Self World — the language with no classes">
+  <meta property="og:description" content="A five-minute, runnable tour of Self: history, family tree, and its influence on JavaScript.">
   <meta name="theme-color" content="#0e1016">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='12' y='2' width='18' height='18' rx='5' fill='%238b7bff' fill-opacity='.55'/%3E%3Crect x='2' y='12' width='18' height='18' rx='5' fill='%238b7bff'/%3E%3C/svg%3E" type="image/svg+xml">
   <style>
     :root {
-      --bg: #0e1016; --panel: #13161e; --win: #171b24; --raised: #20252f; --stroke: #2c3240;
-      --text: #e6e9f0; --faint: #8a93a6; --accent: #8b7bff; --ok: #5ed6a0; --err: #ff6b6b;
+      --bg: #0e1016; --panel: #13161e; --card: #171b24; --raised: #20252f; --stroke: #2c3240;
+      --text: #e6e9f0; --faint: #8a93a6; --accent: #8b7bff; --accent-soft: #2a264d;
+      --ok: #5ed6a0; --err: #ff6b6b; --num: #ffb86b; --str: #8fe3a1; --obj: #7cc4ff; --pink: #ff8fb1;
       --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: -apple-system, "Segoe UI", system-ui, Helvetica, Arial, sans-serif;
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); color: var(--text); }
-    body { font: 15px/1.5 -apple-system, "Segoe UI", system-ui, Helvetica, Arial, sans-serif; overflow: hidden; }
-    body.lite { overflow: auto; }
-    canvas#the_canvas_id { position: fixed; inset: 0; width: 100%; height: 100%; display: block; outline: none; touch-action: none; }
-    body.lite canvas#the_canvas_id { display: none; }
-    #loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 14px; color: var(--faint); text-align: center; padding: 24px; }
-    .mark { position: relative; width: 34px; height: 34px; flex: none; }
-    .mark i { position: absolute; width: 21px; height: 21px; border-radius: 6px; }
-    .mark i:first-child { left: 11px; top: 0; background: #8b7bff8c; }
-    .mark i:last-child { left: 0; top: 12px; background: var(--accent); }
-    #loading .mark { animation: pulse 1.4s ease-in-out infinite; }
-    #loading strong { color: var(--text); font-size: 17px; }
-    @keyframes pulse { 50% { transform: scale(0.88); opacity: 0.7; } }
+    html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+    [id], .cell, .cell button, .cell textarea { scroll-margin-top: 80px; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 var(--sans); overflow-x: hidden; }
+    a { color: var(--accent); }
+    code, pre, textarea { font-family: var(--mono); }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
 
-    /* text shell used when the browser cannot draw the desktop */
-    #lite { display: none; min-height: 100%; }
-    body.lite #lite { display: flex; flex-direction: column; }
-    #lite header { display: flex; align-items: center; gap: 12px; padding: 10px 18px; background: var(--panel); border-bottom: 1px solid var(--stroke); }
-    #lite header .mark { width: 26px; height: 26px; transform: scale(0.8); }
-    #lite header h1 { font-size: 16.5px; margin: 0; }
-    #lite header p { margin: 0 0 0 auto; color: var(--faint); font-size: 12.5px; }
-    #lite main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; padding: 18px; max-width: 1240px; width: 100%; margin: 0 auto; }
-    .card { background: var(--win); border: 1px solid var(--stroke); border-radius: 12px; padding: 14px; box-shadow: 0 10px 28px #0007; min-width: 0; }
-    .card h2 { font-size: 15px; margin: 0 0 10px; }
-    #history { display: flex; flex-direction: column; gap: 8px; max-height: 52vh; overflow: auto; margin-bottom: 10px; }
-    .entry { border-bottom: 1px solid var(--stroke); padding-bottom: 8px; }
-    .entry pre { margin: 0; font: 13.5px/1.45 var(--mono); white-space: pre-wrap; word-break: break-word; }
-    .entry .src::before { content: "› "; color: var(--accent); }
-    .entry .out { color: var(--faint); }
-    .entry .res { color: var(--ok); padding-left: 14px; }
-    .entry .res.err { color: var(--err); }
-    .entry .ms { color: var(--faint); font-size: 11.5px; padding-left: 14px; }
-    textarea { width: 100%; min-height: 76px; resize: vertical; background: #0b0d12; color: var(--text); border: 1px solid var(--stroke);
-      border-radius: 8px; padding: 8px 10px; font: 13.5px/1.45 var(--mono); outline: none; }
-    textarea:focus { border-color: var(--accent); }
-    .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
-    button { font: inherit; font-size: 14px; color: var(--text); background: var(--raised); border: 1px solid var(--stroke); border-radius: 7px; padding: 4px 12px; cursor: pointer; }
-    button:hover { border-color: var(--accent); background: #2a264d; }
-    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
-    .hint { color: var(--faint); font-size: 12.5px; }
-    nav ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
-    nav button { width: 100%; text-align: left; background: transparent; border-color: transparent; padding: 4px 8px; }
-    nav button:hover { background: var(--raised); }
-    #lite footer { color: var(--faint); font-size: 12.5px; text-align: center; padding: 10px 18px 18px; }
-    @media (max-width: 760px) {
-      #lite main { grid-template-columns: minmax(0, 1fr); padding: 12px; }
-      #lite header p { display: none; }
+    /* top bar */
+    header.top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--panel) 88%, transparent);
+      backdrop-filter: blur(8px); border-bottom: 1px solid var(--stroke); }
+    header.top .wrap { display: flex; align-items: center; gap: 18px; height: 56px; }
+    .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 17px; }
+    .mark { position: relative; width: 24px; height: 24px; flex: none; }
+    .mark i { position: absolute; width: 15px; height: 15px; border-radius: 4px; }
+    .mark i:first-child { left: 9px; top: 0; background: #8b7bff8c; }
+    .mark i:last-child { left: 0; top: 9px; background: var(--accent); }
+    nav.links { display: flex; gap: 18px; margin-left: auto; font-size: 14px; }
+    nav.links a { color: var(--faint); text-decoration: none; }
+    nav.links a:hover { color: var(--text); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px; font-weight: 600;
+      text-decoration: none; border: 1px solid var(--stroke); color: var(--text); background: var(--raised); cursor: pointer; font-size: 15px; }
+    .btn:hover { border-color: var(--accent); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.small { padding: 5px 12px; font-size: 14px; border-radius: 8px; }
+    header.top .btn { padding: 6px 14px; font-size: 14px; }
+
+    /* hero */
+    .hero { padding: 72px 20px 40px; position: relative; }
+    .hero h1 { font-size: clamp(34px, 6vw, 60px); line-height: 1.08; margin: 0 0 18px; letter-spacing: -0.02em; }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero p.lead { font-size: clamp(17px, 2.2vw, 21px); color: #c9cedb; max-width: 680px; margin: 0 0 28px; }
+    .hero .cta { display: flex; gap: 12px; flex-wrap: wrap; }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 36px; align-items: center; }
+    .bubbles { position: relative; height: 320px; }
+    .obj { position: absolute; background: var(--card); border: 1px solid var(--stroke); border-radius: 12px; padding: 10px 14px;
+      font: 14px/1.5 var(--mono); box-shadow: 0 12px 30px #0008; animation: float 6s ease-in-out infinite; }
+    .obj b { display: block; font-family: var(--sans); font-size: 13px; color: var(--faint); font-weight: 600; margin-bottom: 4px; }
+    .obj .p { color: var(--pink); } .obj .n { color: var(--num); } .obj .s { color: var(--str); } .obj .m { color: #d39bff; }
+    .obj.a { left: 0; top: 10px; } .obj.b { right: 0; top: 120px; animation-delay: -2s; } .obj.c { left: 30px; bottom: 0; animation-delay: -4s; }
+    @keyframes float { 50% { transform: translateY(-10px); } }
+    @media (prefers-reduced-motion: reduce) { .obj { animation: none; } html { scroll-behavior: auto; } }
+
+    section { padding: 56px 0; border-top: 1px solid var(--stroke); scroll-margin-top: 56px; }
+    .cell .btn, .cell textarea { scroll-margin: 90px 0; }
+    section h2 { font-size: clamp(26px, 4vw, 38px); margin: 0 0 10px; letter-spacing: -0.01em; }
+    section .kicker { color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 13px; }
+    section p.sub { color: #c9cedb; max-width: 720px; margin: 0 0 28px; }
+
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+    .card { background: var(--card); border: 1px solid var(--stroke); border-radius: 14px; padding: 20px; }
+    .card .emoji { font-size: 28px; }
+    .card h3 { margin: 6px 0 6px; font-size: 19px; }
+    .card p { margin: 0; color: #c2c7d4; font-size: 15px; }
+
+    /* tutorial */
+    .steps { display: flex; flex-direction: column; gap: 22px; counter-reset: step; }
+    .step { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 22px; background: var(--card);
+      border: 1px solid var(--stroke); border-radius: 16px; padding: 22px; }
+    .step h3 { margin: 0 0 8px; font-size: 20px; }
+    .step h3::before { counter-increment: step; content: counter(step); display: inline-grid; place-items: center; width: 28px; height: 28px;
+      margin-right: 10px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 15px; }
+    .step p { margin: 0 0 10px; color: #c2c7d4; font-size: 15px; }
+    .step p:last-child { margin-bottom: 0; }
+    .cell { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .cell textarea { width: 100%; background: #0b0d12; color: var(--text); border: 1px solid var(--stroke); border-radius: 10px;
+      padding: 12px 14px; font-size: 14px; line-height: 1.55; resize: vertical; outline: none; tab-size: 2; white-space: pre; overflow-x: auto; }
+    .cell textarea:focus { border-color: var(--accent); }
+    .cell .bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .cell .hint { color: var(--faint); font-size: 12.5px; }
+    .cell pre.out { margin: 0; min-height: 22px; padding: 10px 14px; border-radius: 10px; background: #0f1218; border: 1px dashed var(--stroke);
+      color: var(--ok); font-size: 14px; white-space: pre-wrap; word-break: break-word; }
+    .cell pre.out.err { color: var(--err); }
+    .cell pre.out.idle { color: var(--faint); }
+    .cell pre.out .printed { color: var(--faint); display: block; }
+
+    /* timeline */
+    .timeline { position: relative; margin: 0; padding: 0 0 0 26px; list-style: none; }
+    .timeline::before { content: ""; position: absolute; left: 8px; top: 6px; bottom: 6px; width: 2px; background: linear-gradient(var(--accent), var(--pink)); }
+    .timeline li { position: relative; margin: 0 0 22px; }
+    .timeline li::before { content: ""; position: absolute; left: -24px; top: 7px; width: 14px; height: 14px; border-radius: 50%;
+      background: var(--bg); border: 3px solid var(--accent); }
+    .timeline .year { font: 700 14px/1 var(--mono); color: var(--accent); }
+    .timeline h4 { margin: 4px 0 4px; font-size: 18px; }
+    .timeline p { margin: 0; color: #c2c7d4; font-size: 15px; }
+
+    /* family tree */
+    .tree { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+    .lineage { background: var(--card); border: 1px solid var(--stroke); border-radius: 14px; padding: 18px; }
+    .lineage h3 { margin: 0 0 12px; font-size: 17px; }
+    .chain { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+    .node { border: 1px solid var(--stroke); background: var(--raised); border-radius: 10px; padding: 8px 12px; font-size: 14.5px; }
+    .node small { display: block; color: var(--faint); font-size: 12.5px; }
+    .node.self { border-color: var(--accent); background: var(--accent-soft); }
+    .node.today { border-color: var(--ok); }
+    .arrow { text-align: center; color: var(--faint); font-size: 14px; line-height: 22px; }
+    .roots { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+    .roots .node { min-width: 150px; text-align: center; }
+    .roots .arr { color: var(--faint); }
+
+    /* js comparison */
+    .compare { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin-bottom: 26px; }
+    .codebox { background: #0b0d12; border: 1px solid var(--stroke); border-radius: 12px; overflow: hidden; min-width: 0; }
+    .codebox .label { padding: 8px 14px; font-size: 13px; font-weight: 700; border-bottom: 1px solid var(--stroke); color: var(--faint); }
+    .codebox pre { margin: 0; padding: 14px; font-size: 13.5px; line-height: 1.55; overflow-x: auto; }
+    .rosetta { width: 100%; border-collapse: collapse; font-size: 15px; }
+    .rosetta th, .rosetta td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--stroke); vertical-align: top; }
+    .rosetta th { color: var(--faint); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+    .rosetta code { color: var(--obj); font-size: 13.5px; }
+    .rosetta td:first-child { font-weight: 600; }
+    .table-wrap { overflow-x: auto; }
+
+    .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .fact { background: var(--card); border: 1px solid var(--stroke); border-radius: 12px; padding: 16px 18px; color: #c9cedb; font-size: 15px; }
+    .fact b { color: var(--text); }
+
+    .final { text-align: center; padding: 70px 0; }
+    .final h2 { margin-bottom: 14px; }
+    .final p { color: #c9cedb; margin: 0 auto 26px; max-width: 560px; }
+    footer { border-top: 1px solid var(--stroke); color: var(--faint); font-size: 14px; padding: 26px 0 40px; }
+    footer .wrap { display: flex; gap: 16px; flex-wrap: wrap; justify-content: space-between; }
+
+    @media (max-width: 900px) {
+      .hero-grid, .step, .compare { grid-template-columns: minmax(0, 1fr); }
+      .bubbles { height: 260px; }
+      .tree, .cards { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 640px) {
+      nav.links a:not(.btn) { display: none; }
+      .facts { grid-template-columns: minmax(0, 1fr); }
+      .hero { padding-top: 44px; }
+      .obj { font-size: 12.5px; }
+      .step { padding: 16px; }
     }
   </style>
 </head>
 <body>
-  <canvas id="the_canvas_id"></canvas>
-  <input type="file" id="file_input" accept=".self,text/plain" multiple hidden>
-  <div id="loading">
-    <div class="mark"><i></i><i></i></div>
-    <strong>Self World</strong>
-    <span>Starting the Self virtual machine…</span>
-    <noscript>Self World needs JavaScript and WebAssembly.</noscript>
-  </div>
-
-  <div id="lite">
-    <header>
-      <div class="mark"><i></i><i></i></div>
-      <h1>Self World</h1>
-      <p>This browser can't draw the full outliner desktop (no WebGL), so here is the Self shell.</p>
-    </header>
-    <main>
-      <section class="card" aria-label="Shell">
-        <h2>Shell</h2>
-        <div id="history"></div>
-        <label class="hint" for="input">Self code — Enter runs it, Shift + Enter adds a line</label>
-        <textarea id="input" spellcheck="false" placeholder="(3 @ 4) + (1 @ 1)"></textarea>
-        <div class="row">
-          <button class="primary" id="run">Run ⏎</button>
-          <button id="clear">Clear</button>
-          <button id="load">Load a .self file…</button>
-          <button id="selftest">Run the self-test</button>
-          <span class="hint">self = shell (inherits the lobby) · you can also drop .self files here</span>
-        </div>
-      </section>
-      <nav class="card" aria-label="Examples">
-        <h2>Examples</h2>
-        <ul id="examples"></ul>
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="./"><span class="mark"><i></i><i></i></span>Self World</a>
+      <nav class="links">
+        <a href="#tour">Tour</a>
+        <a href="#history">History</a>
+        <a href="#tree">Family tree</a>
+        <a href="#javascript">JavaScript</a>
+        <a href="book/">Book</a>
+        <a href="try/">Desktop</a>
+        <a class="btn primary" href="play/">Try it ▶</a>
       </nav>
-    </main>
-    <footer>The Self language, implemented in Rust. The same program runs as a desktop app on macOS, Linux and Windows. <a href="https://github.com/Volland/self-lang-rs" style="color:var(--accent)">Source on GitHub</a></footer>
-  </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap hero">
+      <div class="hero-grid">
+        <div>
+          <h1>The language with <em>no classes</em>…<br>that taught JavaScript how to be fast.</h1>
+          <p class="lead">Self is a tiny, radical programming language from 1986. No classes, no variables, not even an <code>if</code> statement — just objects talking to objects. It sounds impossible. It quietly shaped the code you run every day.</p>
+          <div class="cta">
+            <a class="btn primary" href="play/">Try Self in the playground ▶</a>
+            <a class="btn" href="#tour">Take the 5-minute tour ↓</a>
+            <a class="btn" href="book/">Read the mini book</a>
+          </div>
+        </div>
+        <div class="bubbles" aria-hidden="true">
+          <div class="obj a"><b>dog</b><span class="p">parent*</span> = traits clonable<br>name &lt;- <span class="s">'Rex'</span><br><span class="m">speak</span> = ( name, <span class="s">' says woof!'</span> )</div>
+          <div class="obj b"><b>a point</b><span class="p">parent*</span> = traits point<br>x &lt;- <span class="n">3</span><br>y &lt;- <span class="n">4</span></div>
+          <div class="obj c"><b>shell</b>dog copy speak<br><span class="s">→ 'Rex says woof!'</span></div>
+        </div>
+      </div>
+    </div>
+
+    <section id="what">
+      <div class="wrap">
+        <div class="kicker">What is Self?</div>
+        <h2>Three ideas. That's the whole language.</h2>
+        <p class="sub">Most languages give you classes, instances, variables, constructors, static methods, getters, setters… Self looked at all that and said: <i>what if it's all just objects?</i></p>
+        <div class="cards">
+          <div class="card"><div class="emoji">🧱</div><h3>Objects are bags of slots</h3><p>An object is a list of named slots. A slot holds a value or a method — and reading a slot and calling a method look exactly the same.</p></div>
+          <div class="card"><div class="emoji">🐑</div><h3>Copy, don't instantiate</h3><p>No classes, no <code>new</code>. Want a new dog? Copy an existing one — the <i>prototype</i> — and change what's different.</p></div>
+          <div class="card"><div class="emoji">👪</div><h3>Ask your parents</h3><p>If an object doesn't understand a message, it asks its parent objects. Parents are just slots too, so you can swap them while the program runs.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tour">
+      <div class="wrap">
+        <div class="kicker">The 5-minute tour</div>
+        <h2>Learn Self by poking it</h2>
+        <p class="sub">Every box below runs real Self, compiled to WebAssembly, right in your browser. Edit anything and press <b>Run</b> (or Ctrl/⌘ + Enter). The steps share one world, so later steps can use what earlier ones made.</p>
+
+        <div class="steps">
+          <div class="step">
+            <div>
+              <h3>Everything is a message</h3>
+              <p>There are no operators in Self, only <b>messages</b>. <code>3 + 4</code> sends the message <code>+</code> to the object <code>3</code>. Binary messages go strictly left to right, so the answer here might surprise you.</p>
+              <p>Integers never overflow, by the way — try <code>1000 factorial</code>.</p>
+            </div>
+            <div class="cell"><textarea rows="3">3 + 4 * 2</textarea></div>
+          </div>
+
+          <div class="step">
+            <div>
+              <h3>Messages read like sentences</h3>
+              <p><b>Unary</b> messages (<code>reverse</code>) bind tightest, then <b>binary</b> ones (<code>,</code> joins strings), then <b>keyword</b> messages like <code>copyFrom:UpTo:</code>, whose parts after the first are capitalised.</p>
+            </div>
+            <div class="cell"><textarea rows="3">('hello world' reverse, '!') asUppercase</textarea></div>
+          </div>
+
+          <div class="step">
+            <div>
+              <h3>An object is just slots</h3>
+              <p>Write an object between <code>(|</code> and <code>|)</code>. <code>x &lt;- 3</code> is a slot you can change, <code>y = 4</code> is constant, and <code>sum = ( … )</code> is a method. Notice that the method reads <code>x</code> by sending itself the message <code>x</code>.</p>
+            </div>
+            <div class="cell"><textarea rows="3">(| x &lt;- 3. y = 4. sum = ( x + y ) |) sum</textarea></div>
+          </div>
+
+          <div class="step">
+            <div>
+              <h3>Make a prototype…</h3>
+              <p>Let's put a <code>dog</code> in the <b>lobby</b>, the object where every program starts. Its <code>parent*</code> slot (the star makes it a parent) gives it the ability to be copied.</p>
+            </div>
+            <div class="cell"><textarea rows="6">lobby _AddSlots: (|
+  dog = (| parent* = traits clonable.
+           name &lt;- 'Rex'.
+           speak = ( name, ' says woof!' ) |)
+|).
+dog speak</textarea></div>
+          </div>
+
+          <div class="step">
+            <div>
+              <h3>…then copy it</h3>
+              <p>No class, no constructor: <code>dog copy</code> makes a new dog with its own slots. Change the copy and the original doesn't mind. Local variables go between bars at the start.</p>
+            </div>
+            <div class="cell"><textarea rows="4">| bella |
+bella: dog copy.
+bella name: 'Bella'.
+bella speak, '   /   ', dog speak</textarea></div>
+          </div>
+
+          <div class="step">
+            <div>
+              <h3>Inherit by delegation, and call "super"</h3>
+              <p>A <code>puppy</code> whose parent is <code>dog</code> gets everything dog can do. <code>resend.speak</code> runs the inherited version — it's what other languages call <code>super</code>.</p>
+            </div>
+            <div class="cell"><textarea rows="5">lobby _AddSlots: (|
+  puppy = (| parent* = dog.
+             speak = ( resend.speak, ' (and wags its tail)' ) |)
+|).
+puppy speak</textarea></div>
+          </div>
+
+          <div class="step">
+            <div>
+              <h3>Change your parents mid-sentence</h3>
+              <p>Because a parent is just a slot, an object can switch who it inherits from <i>while the program runs</i>. Self folks call this dynamic inheritance. Here a shapeshifter starts as a dog and becomes a cat.</p>
+            </div>
+            <div class="cell"><textarea rows="9">| before |
+lobby _AddSlots: (|
+  cat = (| parent* = traits clonable.
+           speak = ( 'meow.' ) |) |).
+lobby _AddSlots: (|
+  shapeshifter = (| parent* &lt;- dog |) |).
+before: shapeshifter speak.
+shapeshifter parent: cat.
+before, '  →  ', shapeshifter speak</textarea></div>
+          </div>
+
+          <div class="step">
+            <div>
+              <h3>No if statement? Blocks!</h3>
+              <p>Square brackets make a <b>block</b>, a piece of code you can pass around (a closure). <code>ifTrue:False:</code> is just a message to <code>true</code> or <code>false</code>, which decide which block to run.</p>
+            </div>
+            <div class="cell"><textarea rows="4">(1 to: 12 Collect: [| :i | i * i ])
+  select: [| :n | (n % 2) = 0 ]</textarea></div>
+          </div>
+
+          <div class="step">
+            <div>
+              <h3>Look inside anything</h3>
+              <p>Self is fully reflective: you can ask any object what slots it has. In the full desktop, every object can be opened in an <b>outliner</b>, read, and edited live — and on-screen things are objects too, called <b>morphs</b>.</p>
+              <p><a class="btn small primary" href="try/">Open the full desktop ▶</a></p>
+            </div>
+            <div class="cell"><textarea rows="2">(reflect: puppy) names</textarea></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="history">
+      <div class="wrap">
+        <div class="kicker">History</div>
+        <h2>A short history of a very influential "failure"</h2>
+        <p class="sub">Self never became a mainstream language. Its ideas did — they just moved into other people's languages.</p>
+        <ol class="timeline">
+          <li><div class="year">1967</div><h4>Simula invents objects</h4><p>Ole-Johan Dahl and Kristen Nygaard add classes and objects to a simulation language in Norway. Object-oriented programming is born.</p></li>
+          <li><div class="year">1972 – 1980</div><h4>Smalltalk: everything is an object</h4><p>Alan Kay, Dan Ingalls, Adele Goldberg and colleagues at Xerox PARC build Smalltalk, a live world of objects sending messages, with windows and a mouse.</p></li>
+          <li><div class="year">1986</div><h4>Self is designed at Xerox PARC</h4><p>David Ungar and Randall B. Smith ask how simple an object language could be. Their answer throws away classes entirely. The paper <i>"Self: The Power of Simplicity"</i> appears at OOPSLA in 1987.</p></li>
+          <li><div class="year">1987 – 1991</div><h4>Stanford makes it fast</h4><p>Everyone said a language this dynamic would be hopelessly slow. Craig Chambers, Urs Hölzle and Ungar answered with "maps" (hidden classes), customised compilation and polymorphic inline caches. Self 1.0 ships in 1990, at about half the speed of optimised C.</p></li>
+          <li><div class="year">1991 – 1995</div><h4>At Sun Labs: Morphic and adaptive compilation</h4><p>The project moves to Sun Microsystems. Self 4.0 brings Morphic — a UI where you grab any on-screen object and change it while it runs — and a compiler that optimises the code you actually use.</p></li>
+          <li><div class="year">1995</div><h4>JavaScript borrows the prototypes</h4><p>Brendan Eich writes JavaScript at Netscape in about ten days, mixing Scheme's functions with Self's prototype-based objects — wrapped in a Java-like syntax.</p></li>
+          <li><div class="year">1994 – 1999</div><h4>Self's VM team makes Java fast</h4><p>Former Self people found Animorphic Systems and build Strongtalk, a very fast Smalltalk. Sun buys the company in 1997, and its technology becomes Java's HotSpot virtual machine in 1999.</p></li>
+          <li><div class="year">2008</div><h4>…and then JavaScript</h4><p>Lars Bak, who worked on Self, Strongtalk and HotSpot, leads Google's V8 engine for Chrome. Hidden classes and inline caches — Self's tricks — are why modern JavaScript is fast. Node.js runs on V8 from 2009.</p></li>
+          <li><div class="year">Today</div><h4>Still alive</h4><p>Self is open source and still maintained by its community. And now there's this: a Self written in Rust that runs in your browser.</p></li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="tree">
+      <div class="wrap">
+        <div class="kicker">Family tree</div>
+        <h2>Self's family tree</h2>
+        <p class="sub">Self has two kinds of children: languages that took its ideas about objects, and virtual machines that took its ideas about speed. Its user interface ideas had children too.</p>
+        <div class="roots">
+          <div class="node">Simula <small>1967</small></div><span class="arr">→</span>
+          <div class="node">Smalltalk <small>1972 – 80</small></div><span class="arr">→</span>
+          <div class="node self">Self <small>1986</small></div>
+        </div>
+        <div class="tree">
+          <div class="lineage">
+            <h3>🧬 Prototype languages</h3>
+            <div class="chain">
+              <div class="node self">Self's prototypes <small>copy objects, delegate to parents</small></div>
+              <div class="arrow">↓</div>
+              <div class="node">NewtonScript <small>1993 · Apple Newton</small></div>
+              <div class="arrow">↓</div>
+              <div class="node">JavaScript <small>1995 · + Scheme functions, Java syntax</small></div>
+              <div class="arrow">↓</div>
+              <div class="node">Io <small>2002 · tiny and pure prototypes</small></div>
+              <div class="arrow">↓</div>
+              <div class="node today">Every web page you open <small>prototype chains everywhere</small></div>
+            </div>
+          </div>
+          <div class="lineage">
+            <h3>⚡ Fast virtual machines</h3>
+            <div class="chain">
+              <div class="node self">Self VM <small>maps, inline caches, adaptive compilation</small></div>
+              <div class="arrow">↓</div>
+              <div class="node">Strongtalk <small>1990s · Animorphic Systems</small></div>
+              <div class="arrow">↓</div>
+              <div class="node">Java HotSpot <small>1999 · Sun</small></div>
+              <div class="arrow">↓</div>
+              <div class="node">V8 <small>2008 · Chrome</small></div>
+              <div class="arrow">↓</div>
+              <div class="node today">Node.js, Deno, Electron… <small>all on V8</small></div>
+            </div>
+          </div>
+          <div class="lineage">
+            <h3>🖱️ Live interfaces</h3>
+            <div class="chain">
+              <div class="node self">Self's Morphic <small>1995 · grab and change anything</small></div>
+              <div class="arrow">↓</div>
+              <div class="node">Squeak Smalltalk <small>1996</small></div>
+              <div class="arrow">↓</div>
+              <div class="node">Pharo <small>2008</small></div>
+              <div class="arrow">↓</div>
+              <div class="node">Lively Kernel <small>2007 · Morphic in the browser</small></div>
+              <div class="arrow">↓</div>
+              <div class="node today">Self World <small>2026 · Morphic in Rust + WebAssembly</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="javascript">
+      <div class="wrap">
+        <div class="kicker">Self ❤ JavaScript</div>
+        <h2>You already know Self. It's hiding in JavaScript.</h2>
+        <p class="sub">JavaScript put Self's object model in Java-style clothes. Look past the syntax and it's the same idea: objects that delegate to other objects. Here's the same program in both. (The whole family saga is in the mini book, <a href="book/"><i>No, I Am Your Father</i></a>.)</p>
+        <div class="compare">
+          <div class="codebox"><div class="label">Self</div><pre><code>| rex |
+lobby _AddSlots: (|
+  animal = (| parent* = traits clonable.
+              speak = ( 'some noise' ) |)
+|).
+lobby _AddSlots: (|
+  dog = (| parent* &lt;- animal.
+           speak = ( resend.speak, '... woof!' ) |)
+|).
+
+rex: dog copy.
+rex speak.          "'some noise... woof!'"
+rex parent: animal. "change parents at run time"</code></pre></div>
+          <div class="codebox"><div class="label">JavaScript</div><pre><code>const animal = {
+  speak() { return 'some noise'; }
+};
+
+const dog = {
+  __proto__: animal,
+  speak() { return super.speak() + '... woof!'; }
+};
+
+const rex = Object.create(dog);
+rex.speak();       // 'some noise... woof!'
+Object.setPrototypeOf(rex, animal); // same trick</code></pre></div>
+        </div>
+        <div class="table-wrap">
+          <table class="rosetta">
+            <thead><tr><th>Idea</th><th>Self (1986)</th><th>JavaScript</th></tr></thead>
+            <tbody>
+              <tr><td>Inherit from an object</td><td><code>parent* &lt;- animal</code></td><td><code>__proto__: animal</code>, <code>Object.create(animal)</code></td></tr>
+              <tr><td>Make a new object</td><td><code>dog copy</code></td><td><code>Object.create(dog)</code>, <code>{...dog}</code></td></tr>
+              <tr><td>Call the inherited method</td><td><code>resend.speak</code></td><td><code>super.speak()</code></td></tr>
+              <tr><td>Change parents at run time</td><td><code>rex parent: animal</code></td><td><code>Object.setPrototypeOf(rex, animal)</code></td></tr>
+              <tr><td>Add slots to a live object</td><td><code>dog _AddSlots: (| age &lt;- 3 |)</code></td><td><code>dog.age = 3</code></td></tr>
+              <tr><td>Closures</td><td><code>[| :x | x * 2 ]</code></td><td><code>x =&gt; x * 2</code></td></tr>
+              <tr><td>Speed trick: shared layouts</td><td>"maps" (1989)</td><td>V8's "hidden classes" / "shapes"</td></tr>
+              <tr><td>Speed trick: remember lookups</td><td>polymorphic inline caches (1991)</td><td>inline caches in V8, SpiderMonkey, JavaScriptCore</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="facts">
+      <div class="wrap">
+        <div class="kicker">Fun facts</div>
+        <h2>Things that sound made up (but aren't)</h2>
+        <div class="facts">
+          <div class="fact"><b>Self has no variables.</b> A method's locals are slots in an "activation object" — so even running code is made of objects.</div>
+          <div class="fact"><b>Self has no <code>if</code>.</b> <code>true</code> and <code>false</code> are objects that answer <code>ifTrue:False:</code> by running one block or the other.</div>
+          <div class="fact"><b>Reading and calling look identical.</b> <code>dog name</code> might read a slot or run a method — the caller can't tell, and doesn't need to.</div>
+          <div class="fact"><b>It was "too dynamic to be fast".</b> The fix the Self team invented now runs in your browser, every time you load a web page.</div>
+          <div class="fact"><b>You rarely write its name.</b> Messages to <code>self</code> are so common in Self that you can leave the receiver out: <code>speak</code> on its own means "send <code>speak</code> to myself".</div>
+          <div class="fact"><b>Morphic made UIs touchable.</b> In Self 4.0 you could pull a button off a window, look inside it and rewire it — while it worked.</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="wrap final">
+      <h2>Ready to play in a world of objects?</h2>
+      <p>Open the full Self World desktop: outliners for every object, a shell, Morphic windows and buttons made of Self objects, bouncing balls, and the original Self file format.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <a class="btn primary" href="try/">Open the Self desktop ▶</a>
+        <a class="btn" href="play/">Or a plain playground</a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Self World — an independent Self implementation in Rust. Self was created by David Ungar and Randall B. Smith.</span>
+      <span><a href="play/">Playground</a> · <a href="book/">Book</a> · <a href="try/">Desktop</a> · <a href="https://github.com/Volland/self-lang-rs">GitHub</a> · <a href="https://selflanguage.org">selflanguage.org</a></span>
+    </div>
+  </footer>
 
   <script type="module">
-    // The page may be served for a deeper address (for example by a server that
-    // answers every path with this page). The program files sit next to the
-    // real index page, so load them from the folder path, or the site root
-    // when the address is not a folder.
+    // The tutorial runs on the same Rust/WebAssembly Self engine as the desktop,
+    // loaded the first time someone presses Run.
     const path = location.pathname;
-    const base = (path.endsWith('/') || path.endsWith('.html')) ? './' : '/';
-    const { default: init, start_desktop, eval_self, example_list, queue_file, load_self } = await import(base + 'selfworld.js');
-    const fileInput = document.getElementById('file_input');
-    // the full desktop asks for files through this picker; the text shell sets its own handler
-    let onFiles = async (files) => { for (const f of files) queue_file(f.name, await f.text()); };
-    fileInput.addEventListener('change', async () => { await onFiles([...fileInput.files]); fileInput.value = ''; });
-
-    const loading = document.getElementById('loading');
-    const hasWebGL = () => {
-      try {
-        const c = document.createElement('canvas');
-        return !!(c.getContext('webgl2') || c.getContext('webgl'));
-      } catch (e) { return false; }
-    };
-
-    function startLite() {
-      document.body.classList.add('lite');
-      loading.remove();
-      const history = document.getElementById('history');
-      const input = document.getElementById('input');
-      const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; e.textContent = text; return e; };
-      const show = (label, r) => {
-        const entry = el('div', 'entry', '');
-        entry.append(el('pre', 'src', label));
-        if (r.printed) entry.append(el('pre', 'out', r.printed.replace(/\n$/, '')));
-        entry.append(el('pre', 'res' + (r.ok ? '' : ' err'), (r.ok ? '' : '⚠ ') + r.result));
-        for (const t of r.trace) entry.append(el('pre', 'ms', 'in ' + t));
-        for (const n of (r.notes || [])) entry.append(el('pre', 'res err', '⚠ ' + n));
-        if (r.ok) entry.append(el('div', 'ms', r.ms.toFixed(1) + ' ms'));
-        history.append(entry);
-        history.scrollTop = history.scrollHeight;
-      };
-      const run = (code) => { if (code.trim()) show(code, eval_self(code)); };
-      onFiles = async (files) => {
-        for (const f of files) {
-          const text = await f.text();
-          show('load ' + f.name + '   (' + text.split('\n').length + ' lines)', load_self(f.name, text));
-        }
-      };
-      document.getElementById('load').onclick = () => fileInput.click();
-      document.getElementById('selftest').onclick = () => run('selfTest run');
-      document.addEventListener('dragover', (e) => e.preventDefault());
-      document.addEventListener('drop', (e) => { e.preventDefault(); onFiles([...e.dataTransfer.files]); });
-      document.getElementById('run').onclick = () => { run(input.value); input.value = ''; input.focus(); };
-      document.getElementById('clear').onclick = () => { history.textContent = ''; };
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); run(input.value); input.value = ''; }
-      });
-      const list = document.getElementById('examples');
-      for (const [title, code] of example_list()) {
-        const li = document.createElement('li');
-        const b = el('button', '', title);
-        b.title = code;
-        b.onclick = () => { input.value = code; input.focus(); };
-        li.append(b);
-        list.append(li);
+    const base = path.endsWith('/') ? path : path.replace(/[^/]*$/, '');
+    let engine = null;
+    async function loadEngine() {
+      if (!engine) {
+        engine = (async () => {
+          const mod = await import(base + 'selfworld.js');
+          await mod.default({ module_or_path: base + 'selfworld_bg.wasm' });
+          return mod;
+        })();
       }
-      run('(3 @ 4) + (1 @ 1)');
+      return engine;
     }
 
-    try {
-      await init({ module_or_path: base + 'selfworld_bg.wasm' });
-      if (hasWebGL()) {
+    // Each step's cell runs in order, so later steps can rely on earlier ones.
+    const cells = [...document.querySelectorAll('.cell')];
+    const ran = new Set();
+    function decorate(cell, i) {
+      const ta = cell.querySelector('textarea');
+      const title = cell.closest('.step')?.querySelector('h3')?.textContent || 'this step';
+      ta.setAttribute('aria-label', 'Self code for step ' + (i + 1) + ': ' + title);
+      ta.spellcheck = false;
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      const run = document.createElement('button');
+      run.className = 'btn small primary';
+      run.textContent = 'Run ▶';
+      run.setAttribute('aria-label', 'Run step ' + (i + 1));
+      const hint = document.createElement('span');
+      hint.className = 'hint';
+      hint.textContent = 'Ctrl/⌘ + Enter';
+      bar.append(run, hint);
+      const out = document.createElement('pre');
+      out.className = 'out idle';
+      out.setAttribute('aria-live', 'polite');
+      out.textContent = 'Press Run to see what Self says.';
+      cell.append(bar, out);
+      const go = async () => {
+        out.className = 'out idle';
+        out.textContent = 'Running…';
         try {
-          await start_desktop('the_canvas_id');
-          loading.remove();
+          const self = await loadEngine();
+          // make sure earlier steps have run, so their objects exist
+          for (let j = 0; j < i; j++) {
+            if (!ran.has(j)) { self.eval_self(cells[j].querySelector('textarea').value); ran.add(j); }
+          }
+          const r = self.eval_self(ta.value);
+          ran.add(i);
+          out.textContent = '';
+          if (r.printed) {
+            const p = document.createElement('span');
+            p.className = 'printed';
+            p.textContent = r.printed.replace(/\n$/, '');
+            out.append(p);
+          }
+          out.append(document.createTextNode((r.ok ? '→ ' : '⚠ ') + r.result));
+          out.className = 'out' + (r.ok ? '' : ' err');
         } catch (e) {
-          startLite();
+          out.className = 'out err';
+          out.textContent = 'Could not start Self here: ' + e;
         }
-      } else {
-        startLite();
-      }
-    } catch (e) {
-      loading.innerHTML = '<p>Self World could not start: ' + String(e).replace(/</g, '&lt;') + '</p>';
+      };
+      run.addEventListener('click', go);
+      ta.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); go(); }
+      });
     }
+    cells.forEach(decorate);
   </script>
 </body>
 </html>

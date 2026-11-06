@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>No, I Am Your Father</title>
+  <meta name="description" content="A mini book about Self: what it took from Smalltalk, what it threw away, how prototypes fixed fragile classes, why the real revolution was in the virtual machine, and how it became JavaScript's father. With runnable code.">
+  <meta property="og:title" content="No, I Am Your Father: a mini book about Self">
+  <meta property="og:description" content="Self, Smalltalk, JavaScript, prototypes and fast virtual machines, in nine short chapters you can run.">
+  <meta name="theme-color" content="#0e1016">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='12' y='2' width='18' height='18' rx='5' fill='%238b7bff' fill-opacity='.55'/%3E%3Crect x='2' y='12' width='18' height='18' rx='5' fill='%238b7bff'/%3E%3C/svg%3E" type="image/svg+xml">
+  <style>
+    :root {
+      --bg: #0e1016; --panel: #13161e; --card: #171b24; --raised: #20252f; --stroke: #2c3240; --well: #0b0d12;
+      --text: #e6e9f0; --soft: #c9cedb; --faint: #8a93a6; --accent: #8b7bff; --accent-soft: #2a264d;
+      --ok: #5ed6a0; --err: #ff6b6b; --num: #ffb86b; --str: #8fe3a1; --obj: #7cc4ff; --pink: #ff8fb1; --js: #f0db4f;
+      --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: -apple-system, "Segoe UI", system-ui, Helvetica, Arial, sans-serif;
+      --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, "Times New Roman", serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 70px; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 18.5px/1.7 var(--serif); overflow-x: hidden; }
+    a { color: var(--accent); }
+    code, pre, textarea, kbd { font-family: var(--mono); }
+    p code, li code, td code, dd code { font-size: .84em; color: var(--obj); background: #1a1f2b; padding: 1px 5px; border-radius: 5px; }
+
+    #progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: linear-gradient(90deg, var(--accent), var(--pink)); z-index: 30; }
+
+    header.top { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--panel) 92%, transparent);
+      backdrop-filter: blur(8px); border-bottom: 1px solid var(--stroke); font-family: var(--sans); }
+    header.top .bar { display: flex; align-items: center; gap: 18px; height: 52px; padding: 0 16px; max-width: 1240px; margin: 0 auto; }
+    .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 16.5px; white-space: nowrap; }
+    .brand span.sub { color: var(--faint); font-weight: 500; }
+    .mark { position: relative; width: 22px; height: 22px; flex: none; }
+    .mark i { position: absolute; width: 14px; height: 14px; border-radius: 4px; }
+    .mark i:first-child { left: 8px; top: 0; background: #8b7bff8c; }
+    .mark i:last-child { left: 0; top: 8px; background: var(--accent); }
+    nav.links { display: flex; gap: 16px; margin-left: auto; font-size: 14px; align-items: center; }
+    nav.links a { color: var(--faint); text-decoration: none; white-space: nowrap; }
+    nav.links a:hover, nav.links a[aria-current] { color: var(--text); }
+    nav.links a.play { background: var(--accent); color: #fff; border-radius: 8px; padding: 4px 12px; font-weight: 600; }
+
+    .layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 48px; max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+    #toc { position: sticky; top: 70px; align-self: start; max-height: calc(100vh - 90px); overflow: auto; padding: 28px 0 24px; font-family: var(--sans); }
+    #toc h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--faint); margin: 0 0 10px; }
+    #toc ol { list-style: none; margin: 0; padding: 0; counter-reset: ch; }
+    #toc li a { display: grid; grid-template-columns: 26px 1fr; gap: 4px; color: var(--faint); text-decoration: none; font-size: 14px;
+      line-height: 1.4; padding: 6px 8px; border-radius: 8px; border-left: 2px solid transparent; }
+    #toc li a span.n { color: #5d667a; font-variant-numeric: tabular-nums; }
+    #toc li a:hover { color: var(--text); background: var(--card); }
+    #toc li a.on { color: var(--text); border-left-color: var(--accent); background: var(--card); }
+    #toc .side-cta { margin-top: 18px; padding: 14px; border: 1px solid var(--stroke); border-radius: 12px; background: var(--card); font-size: 13.5px; color: var(--soft); line-height: 1.5; }
+    #toc .side-cta a { font-weight: 600; }
+    details.toc-mobile { display: none; }
+
+    article { max-width: 720px; padding: 0 0 80px; min-width: 0; }
+
+    /* cover */
+    .cover { padding: 64px 0 28px; }
+    .cover .kicker { font: 700 13px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+    .cover h1 { font: 700 clamp(40px, 7vw, 68px)/1.04 var(--sans); letter-spacing: -0.025em; margin: 14px 0 16px; }
+    .cover h1 em { font-style: normal; background: linear-gradient(90deg, var(--accent), var(--pink)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .cover p.lead { font-size: 21px; color: var(--soft); margin: 0 0 22px; }
+    .cover .meta { font: 14px/1.5 var(--sans); color: var(--faint); display: flex; gap: 16px; flex-wrap: wrap; }
+
+    .crawl-wrap { margin: 26px 0 10px; perspective: 340px; height: 300px; overflow: hidden; position: relative;
+      mask-image: linear-gradient(to bottom, transparent 0, #000 30%, #000 100%); -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 30%, #000 100%); }
+    .crawl { transform-origin: 50% 100%; transform: rotateX(24deg); text-align: justify; font: 600 19px/1.55 var(--sans);
+      color: #d9d2ff; position: absolute; bottom: 0; left: 6%; right: 6%; }
+    .crawl .ep { text-align: center; font-size: 14px; letter-spacing: .2em; color: var(--accent); }
+    .crawl h3 { text-align: center; font-size: 28px; margin: 4px 0 14px; letter-spacing: .06em; color: #efeaff; }
+    .faraway { font: italic 17px/1.5 var(--serif); color: var(--obj); margin: 28px 0 0; }
+
+    /* chapters */
+    section.chapter { border-top: 1px solid var(--stroke); padding-top: 52px; margin-top: 52px; }
+    .chapter .num { font: 700 13px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+    .chapter h2 { font: 700 clamp(30px, 4.6vw, 42px)/1.12 var(--sans); letter-spacing: -0.015em; margin: 10px 0 20px; }
+    .chapter h3 { font: 700 22px/1.3 var(--sans); margin: 38px 0 10px; }
+    blockquote.epigraph { margin: 0 0 30px; padding: 0 0 0 18px; border-left: 3px solid var(--pink); font-style: italic; color: var(--soft); }
+    blockquote.epigraph p { margin: 0; }
+    blockquote.epigraph cite { display: block; font: normal 14px/1.5 var(--sans); color: var(--faint); margin-top: 4px; }
+    article p { margin: 0 0 18px; }
+    article ul, article ol.plain { margin: 0 0 18px; padding-left: 24px; }
+    article li { margin-bottom: 8px; }
+    .dropcap::first-letter { float: left; font: 700 62px/0.9 var(--sans); padding: 6px 10px 0 0; color: var(--accent); }
+
+    aside.box { margin: 26px 0; padding: 16px 20px; border-radius: 12px; background: var(--card); border: 1px solid var(--stroke); font-size: 17px; }
+    aside.box p:last-child { margin-bottom: 0; }
+    aside.box .label { display: block; font: 700 12px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px; }
+    aside.irony { border-left: 4px solid var(--pink); }
+    aside.irony .label { color: var(--pink); }
+    aside.irony .label::after { content: "  ▮▮▮▮▯"; letter-spacing: 0; }
+    aside.note { border-left: 4px solid var(--obj); }
+    aside.note .label { color: var(--obj); }
+
+    pre.static { background: var(--well); border: 1px solid var(--stroke); border-radius: 12px; padding: 14px 16px; font-size: 14px; line-height: 1.6; overflow-x: auto; margin: 0 0 22px; }
+    pre.static .c { color: var(--faint); }
+    .codelabel { font: 700 12px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); margin: 0 0 8px; }
+
+    /* runnable cells */
+    .cell { margin: 22px 0 26px; border: 1px solid var(--stroke); border-radius: 14px; background: var(--card); overflow: hidden; }
+    .cell .head { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--stroke); font: 13px/1.3 var(--sans); color: var(--faint); }
+    .cell .lang { font-weight: 700; letter-spacing: .06em; text-transform: uppercase; font-size: 11.5px; padding: 3px 7px; border-radius: 5px; }
+    .cell.self .lang { background: var(--accent-soft); color: var(--accent); }
+    .cell.js .lang { background: #3a3514; color: var(--js); }
+    .cell textarea { display: block; width: 100%; border: 0; outline: none; resize: vertical; background: var(--well); color: var(--text);
+      padding: 14px 16px; font-size: 14px; line-height: 1.6; white-space: pre; overflow-x: auto; tab-size: 2; min-height: 60px; }
+    .cell textarea:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+    .cell .bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; flex-wrap: wrap; font-family: var(--sans); }
+    .cell .grow { flex: 1; }
+    .cell button, .cell a.pg { font: 600 13.5px/1 var(--sans); padding: 7px 12px; border-radius: 8px; cursor: pointer; text-decoration: none;
+      border: 1px solid var(--stroke); background: var(--raised); color: var(--text); }
+    .cell button.run { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .cell.js button.run { background: var(--js); border-color: var(--js); color: #1b1a10; }
+    .cell button:hover, .cell a.pg:hover { filter: brightness(1.12); }
+    .cell button:focus-visible, .cell a.pg:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+    .cell .hint { font-size: 12.5px; color: var(--faint); }
+    .cell pre.out { margin: 0; padding: 10px 16px 14px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; color: var(--ok); border-top: 1px dashed var(--stroke); }
+    .cell pre.out.idle { color: var(--faint); }
+    .cell pre.out.err { color: var(--err); }
+    .cell pre.out .printed { display: block; color: var(--soft); }
+    .cell pre.out .setup { display: block; color: var(--faint); font-size: 12.5px; }
+
+    /* tables and diagrams */
+    .table-wrap { overflow-x: auto; margin: 0 0 24px; border: 1px solid var(--stroke); border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; font: 15px/1.5 var(--sans); }
+    th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--stroke); vertical-align: top; }
+    tr:last-child td { border-bottom: 0; }
+    th { color: var(--faint); font-size: 12.5px; text-transform: uppercase; letter-spacing: .06em; background: var(--panel); }
+    td:first-child { font-weight: 600; }
+    td code { white-space: nowrap; }
+
+    .diagram { margin: 6px 0 26px; padding: 18px; border: 1px solid var(--stroke); border-radius: 14px; background: var(--panel); font-family: var(--sans); }
+    .diagram .cap { font-size: 13px; color: var(--faint); margin-top: 12px; line-height: 1.5; }
+    .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+    .two h4 { margin: 0 0 10px; font-size: 14px; color: var(--soft); }
+    .stack { display: flex; flex-direction: column; gap: 0; align-items: stretch; }
+    .nd { border: 1px solid var(--stroke); background: var(--raised); border-radius: 10px; padding: 7px 11px; font-size: 14px; line-height: 1.35; }
+    .nd small { display: block; color: var(--faint); font-size: 12px; }
+    .nd code { color: var(--obj); font-size: 13px; }
+    .nd.hi { border-color: var(--accent); background: var(--accent-soft); }
+    .nd.js { border-color: #8a7d2a; }
+    .nd.meta { border-style: dashed; }
+    .ar { text-align: center; color: var(--faint); font-size: 13px; line-height: 22px; }
+    .ar.loop { color: var(--pink); }
+
+    .tower { display: grid; grid-template-columns: auto auto 1fr; gap: 6px 12px; align-items: center; font-size: 14.5px; }
+    .tower code { font-size: 13.5px; color: var(--obj); background: #1a1f2b; padding: 2px 6px; border-radius: 5px; }
+    .tower .arr { color: var(--faint); }
+
+    .lineage { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+    .lineage .ar { padding: 0 2px; }
+
+    .ending { margin-top: 60px; padding: 30px; border-radius: 18px; text-align: center; font-family: var(--sans);
+      background: radial-gradient(120% 140% at 50% 0%, #2a264d 0%, var(--card) 60%); border: 1px solid var(--stroke); }
+    .ending h3 { font-size: 26px; margin: 0 0 8px; }
+    .ending p { color: var(--soft); font-size: 16px; margin: 0 auto 18px; max-width: 520px; }
+    .ending .btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; padding: 10px 18px; border-radius: 10px; font-weight: 600; font-size: 15px; text-decoration: none;
+      border: 1px solid var(--stroke); color: var(--text); background: var(--raised); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn:hover { filter: brightness(1.1); }
+
+    ol.refs { font-size: 15.5px; color: var(--soft); padding-left: 22px; }
+    ol.refs li { margin-bottom: 8px; }
+    footer { border-top: 1px solid var(--stroke); color: var(--faint); font: 14px/1.6 var(--sans); padding: 26px 24px 40px; text-align: center; }
+
+    @media (max-width: 1060px) {
+      .layout { grid-template-columns: minmax(0, 1fr); gap: 0; }
+      #toc { display: none; }
+      article { margin: 0 auto; width: 100%; }
+      details.toc-mobile { display: block; margin: 18px 0 0; font-family: var(--sans); border: 1px solid var(--stroke); border-radius: 12px; background: var(--card); }
+      details.toc-mobile summary { cursor: pointer; padding: 10px 14px; font-size: 15px; font-weight: 600; }
+      details.toc-mobile ol { margin: 0; padding: 0 14px 12px 36px; font-size: 15px; }
+      details.toc-mobile a { color: var(--soft); text-decoration: none; }
+    }
+    @media (max-width: 640px) {
+      body { font-size: 17.5px; }
+      .layout { padding: 0 16px; }
+      header.top .bar { gap: 10px; }
+      nav.links { gap: 12px; }
+      nav.links a.hide-sm, .brand span.sub { display: none; }
+      .two { grid-template-columns: minmax(0, 1fr); }
+      .crawl { font-size: 16px; left: 2%; right: 2%; }
+      .crawl-wrap { height: 330px; }
+      .cell .hint { display: none; }
+      .tower { font-size: 13.5px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="progress" aria-hidden="true"></div>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../"><span class="mark"><i></i><i></i></span>Self World <span class="sub">/ Book</span></a>
+      <nav class="links" aria-label="Site">
+        <a class="hide-sm" href="../#tour">Tour</a>
+        <a href="./" aria-current="page">Book</a>
+        <a class="hide-sm" href="../try/">Desktop</a>
+        <a class="play" href="../play/">Playground ▶</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav id="toc" aria-label="Chapters">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#prologue"><span class="n">0</span>The line everybody gets wrong</a></li>
+        <li><a href="#grandfather"><span class="n">1</span>The grandfather</a></li>
+        <li><a href="#simplicity"><span class="n">2</span>The power of simplicity</a></li>
+        <li><a href="#upgrades"><span class="n">3</span>What Self did to Smalltalk</a></li>
+        <li><a href="#fragile"><span class="n">4</span>It's a trap: the fragile class</a></li>
+        <li><a href="#engine"><span class="n">5</span>The revolution was in the engine room</a></li>
+        <li><a href="#father"><span class="n">6</span>No, I am your father</a></li>
+        <li><a href="#helmet"><span class="n">7</span>The son puts on the helmet</a></li>
+        <li><a href="#matters"><span class="n">8</span>Why it matters</a></li>
+        <li><a href="#reading"><span class="n">↗</span>Further reading</a></li>
+      </ol>
+      <div class="side-cta">Every <b>Self</b> box in this book runs on a real Self engine in your browser. Want a blank page? <a href="../play/">Open the playground ▶</a></div>
+    </nav>
+
+    <article>
+      <header class="cover">
+        <div class="kicker">A mini book about Self</div>
+        <h1>No, I Am <em>Your Father</em></h1>
+        <p class="lead">How a tiny 1986 language with no classes outgrew its own father, Smalltalk, fixed the fragile class, quietly rebuilt the virtual machine, and became the father JavaScript never talks about.</p>
+        <div class="meta"><span>9 short chapters</span><span>· about 40 minutes</span><span>· runnable code throughout</span></div>
+        <details class="toc-mobile">
+          <summary>Contents</summary>
+          <ol start="0">
+            <li><a href="#prologue">The line everybody gets wrong</a></li>
+            <li><a href="#grandfather">The grandfather</a></li>
+            <li><a href="#simplicity">The power of simplicity</a></li>
+            <li><a href="#upgrades">What Self did to Smalltalk</a></li>
+            <li><a href="#fragile">It's a trap: the fragile class</a></li>
+            <li><a href="#engine">The revolution was in the engine room</a></li>
+            <li><a href="#father">No, I am your father</a></li>
+            <li><a href="#helmet">The son puts on the helmet</a></li>
+            <li><a href="#matters">Why it matters</a></li>
+          </ol>
+        </details>
+
+        <p class="faraway">A long time ago, in a research lab far, far away…</p>
+        <div class="crawl-wrap" aria-label="Opening crawl">
+          <div class="crawl">
+            <div class="ep">EPISODE MCMLXXXVI</div>
+            <h3>A NEW PROTOTYPE</h3>
+            <p>It is a period of class warfare. Object-oriented programmers, striking from hidden metaclasses, have won their first victory against the procedural empire.</p>
+            <p>At Xerox PARC, two researchers, DAVID UNGAR and RANDALL SMITH, have a reckless plan: delete the classes. All of them.</p>
+            <p>Everyone tells them it will be far too slow. They do it anyway, and accidentally design the engine that will one day power every web browser in the galaxy…</p>
+          </div>
+        </div>
+      </header>
+
+      <!-- ===================================================== 0 -->
+      <section class="chapter" id="prologue" aria-labelledby="h0">
+        <div class="num">Prologue</div>
+        <h2 id="h0">The line everybody gets wrong</h2>
+        <p class="dropcap">Nobody in the film ever says “Luke, I am your father.” The line is <i>“No, I am your father.”</i> Millions of people remember it wrong, and they all remember it wrong in the same way, with great confidence.</p>
+        <p>The family tree of JavaScript gets the same treatment. Ask a room of developers where JavaScript's objects came from and you'll hear “Java” (the name was a marketing deal), “C” (the curly braces), or “Brendan Eich, in ten days” (true, but he didn't invent them from nothing). The answer is a research language most of them have never seen: <b>Self</b>, designed in 1986 by David Ungar and Randall B. Smith at Xerox PARC.</p>
+        <p>Self never had a large user base. Its ideas did. Every JavaScript object you've ever made follows Self's model, and the engine running this page (V8, if you're in Chrome) is built on tricks the Self team invented to make that model fast. Self is the parent nobody mentions at family dinners.</p>
+        <p>This mini book tells that story:</p>
+        <ul>
+          <li><b>Who the grandfather is.</b> Smalltalk: classes, metaclasses and all.</li>
+          <li><b>What Self threw away</b>, and why throwing things away turned out to be the upgrade.</li>
+          <li><b>How prototypes fixed the fragile class</b>, and the part they didn't fix (it's a trap).</li>
+          <li><b>Where the real revolution was.</b> Not in the syntax: in the engine room.</li>
+          <li><b>The reveal.</b> JavaScript, and its later attempt to dress up as somebody else.</li>
+        </ul>
+        <aside class="box note">
+          <span class="label">How to read this book</span>
+          <p>Boxes marked <b style="color:var(--accent)">SELF</b> run real Self on an engine written in Rust and compiled to WebAssembly. Boxes marked <b style="color:var(--js)">JS</b> run in your browser's own JavaScript engine. Edit anything and press <b>Run</b> (or <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Enter</kbd>).</p>
+          <p>The Self boxes share one world, like one long conversation. If a box needs an object from an earlier chapter, the book quietly makes it first. <b>Open in playground</b> takes the example, with whatever it needs, to a full editor.</p>
+        </aside>
+      </section>
+
+      <!-- ===================================================== 1 -->
+      <section class="chapter" id="grandfather" aria-labelledby="h1">
+        <div class="num">Chapter 1</div>
+        <h2 id="h1">The grandfather</h2>
+        <blockquote class="epigraph"><p>“I find your lack of classes disturbing.”</p><cite>Every Smalltalk programmer, 1987 (allegedly)</cite></blockquote>
+
+        <p>Before there was a son, there was a grandfather, and before him a great-grandfather. In 1967, in Oslo, Ole-Johan Dahl and Kristen Nygaard gave the Simula language <i>classes</i> and <i>objects</i> to model ships, queues and customers. Object-oriented programming started there.</p>
+        <p>In the 1970s at Xerox PARC, Alan Kay, Dan Ingalls, Adele Goldberg and their colleagues took the idea much further. <b>Smalltalk</b> said: <i>everything</i> is an object, and the only thing objects do is send each other messages. Numbers are objects. Classes are objects. <code>true</code> is an object. There's no <code>if</code> statement; you send <code>ifTrue:</code> to a boolean and hand it a block of code. Smalltalk-80 shipped with overlapping windows, a mouse, a live image you could change while it ran, and browsers for reading and editing every line of the system. It was decades early.</p>
+        <p>This is how you make a kind of object in Smalltalk-80. You don't make the object; you make a <i>class</i>, and ask the class to make instances:</p>
+        <div class="codelabel">Smalltalk-80</div>
+<pre class="static"><code>Object subclass: #Animal
+    instanceVariableNames: 'name'
+    classVariableNames: ''
+    poolDictionaries: ''
+    category: 'Zoo'.
+
+Animal >> speak
+    ^ name, ' makes a noise'
+
+rex := Animal new.</code></pre>
+        <p>Look at the first line. To create the class <code>Animal</code>, you send a message to another class, <code>Object</code>. Since everything in Smalltalk is an object, a class is an object too. Every object has a class. So what is the class of a class?</p>
+
+        <h3>The tower of metaclasses</h3>
+        <p>Smalltalk answers honestly, and the answer is a staircase:</p>
+        <div class="diagram" role="img" aria-label="The Smalltalk-80 metaclass chain: 3 is a SmallInteger, SmallInteger is an instance of its metaclass, every metaclass is an instance of Metaclass, and Metaclass class is an instance of Metaclass again, closing the loop.">
+          <div class="tower">
+            <code>3 class</code><span class="arr">→</span><span><code>SmallInteger</code> &nbsp;a class</span>
+            <code>SmallInteger class</code><span class="arr">→</span><span><code>SmallInteger class</code> &nbsp;its metaclass</span>
+            <code>SmallInteger class class</code><span class="arr">→</span><span><code>Metaclass</code> &nbsp;the class of all metaclasses</span>
+            <code>Metaclass class</code><span class="arr">→</span><span><code>Metaclass class</code> &nbsp;a metaclass, so…</span>
+            <code>Metaclass class class</code><span class="arr" style="color:var(--pink)">↺</span><span><code>Metaclass</code> &nbsp;…back where we started</span>
+          </div>
+          <div class="cap">Every class has its own metaclass, every metaclass is an instance of <code>Metaclass</code>, and <code>Metaclass</code>'s own metaclass is an instance of <code>Metaclass</code>. It's correct and consistent, and it is part of what beginners had to learn.</div>
+        </div>
+        <p>Ungar and Smith looked at this and listed the costs of classes, even in a language as clean as Smalltalk:</p>
+        <ul>
+          <li><b>Two concepts where one would do.</b> Programmers juggle objects <i>and</i> classes, instances <i>and</i> metaclasses, instance variables <i>and</i> class variables.</li>
+          <li><b>No one-offs.</b> You can't just make <i>one</i> special object. You must first describe its whole kind, then make the single instance.</li>
+          <li><b>Two ways to touch state.</b> Inside its class, a method reads <code>name</code> as a variable. From outside, you must send a message. The same state has two different kinds of access.</li>
+          <li><b>Things to keep in sync.</b> The class describes the shape of its instances. Change the class and every existing instance has to be converted to the new shape.</li>
+        </ul>
+        <aside class="box irony">
+          <span class="label">Irony meter</span>
+          <p>Smalltalk was the rebel: the language that said C and Pascal didn't take objects seriously enough. Self is what happens when the rebel's kid decides the rebel didn't go far enough.</p>
+        </aside>
+      </section>
+
+      <!-- ===================================================== 2 -->
+      <section class="chapter" id="simplicity" aria-labelledby="h2">
+        <div class="num">Chapter 2</div>
+        <h2 id="h2">The power of simplicity</h2>
+        <blockquote class="epigraph"><p>“Do, or do not. There is no class.”</p><cite>Paraphrased, heavily</cite></blockquote>
+
+        <p>In 1987 Ungar and Smith published <i>“Self: The Power of Simplicity”</i> at the OOPSLA conference. The paper took Smalltalk's “everything is an object” and removed what it saw as the scaffolding. What was left is three ideas:</p>
+        <ol class="plain">
+          <li><b>An object is a set of named slots.</b> A slot holds a value or a method. Reading a slot and calling a method look exactly the same.</li>
+          <li><b>New objects are copies.</b> There are no classes. You make an example object, the <i>prototype</i>, and copy it.</li>
+          <li><b>What you don't know, ask your parents.</b> When an object gets a message it has no slot for, it passes the question to its <i>parent</i> objects. Parents are just slots marked with a star.</li>
+        </ol>
+        <p>Here is a whole object, written between <code>(|</code> and <code>|)</code>. <code>x &lt;- 3</code> is a slot you can change, <code>y = 4</code> is a constant, and <code>sum</code> is a method. The method reads <code>x</code> by sending the message <code>x</code> to itself; you don't write <code>self</code>, because Self assumes it.</p>
+        <div class="cell self"><textarea rows="1">(| x &lt;- 3. y = 4. sum = ( x + y ) |) sum</textarea></div>
+
+        <h3>Meet the father</h3>
+        <p>Let's make a real prototype and put it in the <b>lobby</b>, the object where all the global names live. Its <code>parent*</code> slot points at <code>traits clonable</code>, a shared object that knows how to <code>copy</code>.</p>
+        <div class="cell self" data-defines="father"><textarea rows="7">lobby _AddSlots: (|
+  father = (| parent* = traits clonable.
+              name &lt;- 'Self'.
+              born = 1986.
+              reveal = ( name, ': I am your father.' ) |)
+|).
+father reveal</textarea></div>
+        <p>No class, no constructor, no <code>new</code>. To get another one, copy it. The copy has its own <code>name</code> slot, so changing it doesn't change the original. (Assigning is a message too: <code>name: 'Self 4.0'</code> sends <code>name:</code> to the copy, and the answer is the copy itself, so we can keep talking to it.)</p>
+        <div class="cell self" data-needs="father"><textarea rows="1">(father copy name: 'Self 4.0') reveal, '  /  ', father reveal</textarea></div>
+
+        <h3>Meet the son</h3>
+        <p>Now a second object whose parent is <code>father</code>. It has a name and a birth year, and nothing else. It doesn't define <code>reveal</code>.</p>
+        <div class="cell self" data-defines="son" data-needs="father"><textarea rows="6">lobby _AddSlots: (|
+  son = (| parent* &lt;- father.
+           name &lt;- 'JavaScript'.
+           born = 1995 |)
+|).
+son reveal</textarea></div>
+        <p>The son doesn't understand <code>reveal</code>, so he asks his father, and the father's method runs. But inside it, <code>self</code> is still the son, so <code>name</code> means the <i>son's</i> name. This is called <b>delegation</b>: the behaviour is borrowed and the identity stays put.</p>
+        <aside class="box irony">
+          <span class="label">Irony meter</span>
+          <p>The son repeats his father's lines in his own voice and believes he wrote them. Every teenager does this. So, as we'll see, does every JavaScript engine.</p>
+        </aside>
+        <p>Self can look inside any object. A <b>mirror</b> reflects on an object without disturbing it. Ask what the son actually owns:</p>
+        <div class="cell self" data-needs="son"><textarea rows="1">(reflect: son) names</textarea></div>
+        <p>Three slots. Everything else, he borrows. That's the whole object model: slots, copies and parents. Smalltalk's classes, metaclasses, instance variables, class variables and constructors are all replaced by those three ideas.</p>
+      </section>
+
+      <!-- ===================================================== 3 -->
+      <section class="chapter" id="upgrades" aria-labelledby="h3">
+        <div class="num">Chapter 3</div>
+        <h2 id="h3">What Self did to Smalltalk</h2>
+        <blockquote class="epigraph"><p>“When I left you, I was but the learner. Now I am the master.”</p><cite>Self, to Smalltalk, probably</cite></blockquote>
+
+        <p>Self didn't reject Smalltalk. It's obviously Smalltalk's child: the same unary, binary and keyword messages, the same blocks in square brackets, the same <code>^</code> for returning, the same comments in double quotes, the same live world of objects. The changes are all in one direction: <i>take a distinction away</i>.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Smalltalk-80</th><th>Self</th><th>What disappeared</th></tr></thead>
+            <tbody>
+              <tr><td>Classes and metaclasses</td><td>Objects only</td><td>The class/instance split, and the metaclass tower</td></tr>
+              <tr><td><code>Animal new</code></td><td><code>dog copy</code></td><td>Constructors as a special idea</td></tr>
+              <tr><td>Instance variables, read directly inside the class</td><td>Slots, reached only by messages, even from inside</td><td>The difference between a field and a method</td></tr>
+              <tr><td>One superclass, fixed when the class is made</td><td>Any number of parent slots, assignable at run time</td><td>Fixed inheritance</td></tr>
+              <tr><td><code>super</code></td><td><code>resend</code>, or <code>father.reveal</code> to pick a parent</td><td>The single-parent assumption</td></tr>
+              <tr><td>Temporaries in a method context</td><td>Locals are slots of an activation object, a copy of the method</td><td>Variables as a separate concept</td></tr>
+              <tr><td>Blocks that (in Smalltalk-80) weren't full closures</td><td>Blocks are real closures, with non-local <code>^</code> return</td><td>The half-closure</td></tr>
+              <tr><td>Explicit <code>self foo</code></td><td><code>foo</code> alone means “send foo to myself”</td><td>Most of the word <code>self</code>, ironically</td></tr>
+              <tr><td>Class browsers</td><td>Outliners on individual objects; later Morphic</td><td>The idea that you edit descriptions, not things</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Three of these changes do most of the work. Let's run them.</p>
+
+        <h3>Upgrade 1: there is only one way in</h3>
+        <p>In Smalltalk, a method inside <code>Droid</code> reads the instance variable <code>battery</code> directly. If you later decide the battery level should be computed rather than stored, every method that touched the variable must change, including methods in subclasses you didn't write.</p>
+        <p>In Self, nobody touches a variable directly, ever. <code>droid battery</code> is a message. So you can swap a stored value for a computed one and nobody who asks can tell:</p>
+        <div class="cell self" data-defines="droid"><textarea rows="5">| before |
+lobby _AddSlots: (| droid = (| parent* = traits clonable. battery &lt;- 100 |) |).
+before: droid battery.
+droid _AddSlots: (| battery = ( 'none of your business' ) |).
+before printString, '  →  ', droid battery</textarea></div>
+        <p>Bertrand Meyer later named this the <i>uniform access principle</i>. JavaScript got its own version in 2009, when ES5 added getters. Python calls it <code>@property</code>. Self simply never had a second way.</p>
+
+        <h3>Upgrade 2: control flow is just messages</h3>
+        <p>This one Self inherited intact from Smalltalk, and it deserves the credit: there's no <code>if</code>. A comparison answers <code>true</code> or <code>false</code>, which are ordinary objects, and they answer <code>ifTrue:False:</code> by running one block or the other.</p>
+        <div class="cell self" data-needs="son"><textarea rows="3">(son born > father born)
+  ifTrue: [ 'the son is younger' ]
+  False: [ 'time travel' ]</textarea></div>
+        <p>(Self writes the second keyword with a capital, <code>False:</code>, so the parser knows <code>ifTrue:False:</code> is one message and not two.)</p>
+
+        <h3>Upgrade 3: parents are slots, so they can change</h3>
+        <p>With <code>resend</code>, a child runs its parent's version of a method, which is what other languages call <code>super</code>. Here is the third generation:</p>
+        <div class="cell self" data-defines="grandson" data-needs="son"><textarea rows="6">lobby _AddSlots: (|
+  grandson = (| parent* &lt;- son.
+                name &lt;- 'TypeScript'.
+                reveal = ( resend.reveal, ' (now with types)' ) |)
+|).
+grandson reveal</textarea></div>
+        <p>Now the part Smalltalk couldn't do without tricks. The son's parent slot was written <code>parent* &lt;- father</code>, with an arrow, so it's assignable. An object can change who it inherits from <i>while the program runs</i>. Self programmers call this <b>dynamic inheritance</b> and use it for objects whose behaviour depends on their state: a window that is open or closed, a parser in one mode or another.</p>
+        <div class="cell self" data-needs="son"><textarea rows="9">| before. after |
+lobby _AddSlots: (| smalltalk = (| parent* = traits clonable.
+  reveal = ( 'I am your grandfather. I have classes. And metaclasses.' ) |) |).
+before: son reveal.
+son parent: smalltalk.          "the son switches fathers"
+after: son reveal.
+son parent: father.             "…and switches back, for the rest of the book"
+before, '  →  ', after</textarea></div>
+        <aside class="box note">
+          <span class="label">Credit where due</span>
+          <p>Self wasn't the first language with prototypes. Alan Borning's ThingLab (1981) and Henry Lieberman's work on delegation (1986) came earlier. Self was the language that bet everything on them, in a complete, live, practical system, and then had to make them fast. That last part comes in chapter 5.</p>
+        </aside>
+      </section>
+
+      <!-- ===================================================== 4 -->
+      <section class="chapter" id="fragile" aria-labelledby="h4">
+        <div class="num">Chapter 4</div>
+        <h2 id="h4">It's a trap: the fragile class</h2>
+        <blockquote class="epigraph"><p>“It's a trap!”</p><cite>Admiral Ackbar, reviewing a pull request to a base class</cite></blockquote>
+
+        <p>The <b>fragile base class problem</b> is the name for a familiar pain: you make a reasonable change to a base class, and code you've never seen, in subclasses somebody else wrote, breaks. It comes in two kinds, and it's worth being precise, because prototypes fix one of them and not the other.</p>
+
+        <h3>Kind 1: structural fragility</h3>
+        <p>Here the subclass depends on the base class's <i>shape</i>. In C++, an object of a subclass contains the base class's fields at fixed offsets. Add one field to the base class and every offset in every subclass moves, so everything that inherits from it must be recompiled. Ship a library with a new private field and you can break programs that were compiled against the old version.</p>
+        <p>Smalltalk is far more forgiving, because the whole world is live, but the structure is still there. Compiled methods reach instance variables by their position. Add an instance variable to <code>Animal</code> and the system must recompile the methods of every subclass of <code>Animal</code> and convert every existing instance of every one of them to the new layout. Smalltalk does that for you, by mutating the world. And because subclasses read inherited instance variables directly, renaming or removing one in the base class breaks the subclasses' methods.</p>
+
+        <h3>How prototypes take the structure away</h3>
+        <p>Self removes every one of those dependencies:</p>
+        <ul>
+          <li><b>Children don't contain their parents.</b> A parent slot is a pointer, not a copy of the parent's layout. Adding a slot to a parent changes the parent and nothing else.</li>
+          <li><b>Nobody reaches into anybody's fields.</b> Every access is a message (chapter 3), so a parent can change how it stores things without breaking a single child.</li>
+          <li><b>There's no class to keep in sync.</b> A prototype is just an object. Changing it affects the copies you make next. Existing copies aren't converted, because there's nothing to convert them to.</li>
+        </ul>
+        <p>Watch the father learn something new while his whole family is alive. The son and grandson have it at once, with nothing recompiled and no instance converted:</p>
+        <div class="cell self" data-needs="grandson"><textarea rows="3">"Teach the father a new method while the family is running."
+father _AddSlots: (| describe = ( name, ', born ', born printString ) |).
+son describe, '  |  ', grandson describe</textarea></div>
+        <p>Now change a <i>prototype</i> itself, with a copy of it already out in the world. (We experiment on a copy of the son called <code>rebel</code>, so the real son stays as he is for later chapters.)</p>
+        <div class="cell self" data-needs="son"><textarea rows="7">lobby _AddSlots: (| rebel = son copy |).         "a prototype to experiment on"
+lobby _AddSlots: (| luke = rebel copy |).        "an existing 'instance'"
+rebel _AddSlots: (| semicolons &lt;- 'optional' |). "the prototype grows a slot"
+"New copies have it. Luke keeps working without it."
+(rebel copy semicolons), '  /  ', luke reveal, '  /  ',
+  ([ luke semicolons ] onError: [| :msg | msg ])</textarea></div>
+        <p>Nothing broke, nothing migrated, and the old object says so plainly instead of being silently reshaped. If Luke needs the slot, you add it to Luke. The layout bookkeeping that C++ makes you recompile for, and that Smalltalk does by rewriting the world, still exists in Self. It lives in the virtual machine, which tracks object layouts in hidden structures called <i>maps</i>, and it never reaches your program. Chapter 5 is about them.</p>
+
+        <h3>Kind 2: semantic fragility, the trap</h3>
+        <p>The second kind isn't about layout. It's about <i>behaviour</i>: the base class calls its own methods, a subclass overrides one of them, and the base class's behaviour changes in ways neither author intended. The textbook example is a set that counts insertions by overriding both <code>add:</code> and <code>addAll:</code>. If the base class's <code>addAll:</code> happens to call <code>add:</code>, every element is counted twice, and if a later version of the base class stops doing that, the count silently becomes correct again.</p>
+        <p>Prototypes do not fix this. They can't, because it's the same mechanism we celebrated in chapter 2. The father's <code>reveal</code> sends <code>name</code> to <code>self</code>. Any child can change what that means:</p>
+        <div class="cell self" data-needs="father"><textarea rows="5">lobby _AddSlots: (|
+  impostor = (| parent* = father.
+                name = ( 'Darth ', resend.name ) |)
+|).
+impostor reveal</textarea></div>
+        <aside class="box irony">
+          <span class="label">Irony meter</span>
+          <p>The thing that let the son deliver his father's line in his own voice, late binding of <code>self</code>, is exactly the thing that makes base classes fragile. It's the same feature seen from the other side. Self removed the structural trap and kept the behavioural one, because the behavioural one is what makes object-oriented programming worth doing.</p>
+        </aside>
+
+        <h3>And one new trap of its own</h3>
+        <p>Self added a trap that Smalltalk doesn't have. If a child doesn't have a slot and assigns to it, the assignment is found in the parent and changes the <i>parent's</i> slot:</p>
+        <div class="cell self" data-needs="father"><textarea rows="6">| kid. said |
+kid: (| parent* = father |).
+kid name: 'Luke'.        "the kid only wants to name himself"
+said: father reveal.
+father name: 'Self'.     "put things back for the rest of the book"
+said</textarea></div>
+        <p>The kid tried to rename himself and renamed his father. Self programmers avoid this with a discipline described in the 1991 paper <i>“Organizing Programs Without Classes”</i>: put shared <b>behaviour</b> in a <i>traits</i> object, which is a parent, and put <b>state</b> in a <i>prototype</i>, which gets copied, so every copy carries its own slots.</p>
+        <aside class="box irony">
+          <span class="label">Irony meter</span>
+          <p>A traits object full of shared methods, plus a prototype that defines the shape of new objects, is a class, split in two and assembled by hand. Self deleted classes, and its own standard library rebuilt them as a convention. The difference, which matters, is that the convention is optional: you can still make the one-off object, swap the parent, or add a slot to Luke alone.</p>
+        </aside>
+      </section>
+
+      <!-- ===================================================== 5 -->
+      <section class="chapter" id="engine" aria-labelledby="h5">
+        <div class="num">Chapter 5</div>
+        <h2 id="h5">The revolution was in the engine room</h2>
+        <blockquote class="epigraph"><p>“She may not look like much, but she's got it where it counts, kid.”</p><cite>On the Self virtual machine</cite></blockquote>
+
+        <p>By the standards of 1986, everything you've read so far is a performance disaster. Smalltalk was already considered slow. Self is worse in every respect: reading a variable is a message send, every <code>if</code> is a message send with blocks, and there are no classes for a compiler to reason about. Any object can gain slots or change parents at any moment. Critics said it couldn't be made fast, and on the evidence of the time they were right.</p>
+        <p>The Self group, which moved to Stanford and then to Sun Microsystems, spent the next eight years proving them wrong. They built on the best Smalltalk work of the day, especially L. Peter Deutsch and Allan Schiffman's 1984 Smalltalk-80 implementation, which already compiled to machine code on the fly and remembered method lookups at each call site. Then they went much further:</p>
+        <ol class="plain">
+          <li><b>Maps (1989).</b> Objects copied from the same prototype share one hidden “map” that records which slot sits where. Copies become as compact as instances of a class, because, underneath, the VM keeps something very like a class for them. The program never sees it.</li>
+          <li><b>Customised compilation (1989).</b> Compile a separate version of each method for each kind of receiver. Inside that version, the compiler knows exactly what <code>self</code> is, so sends to <code>self</code> can be resolved early and inlined.</li>
+          <li><b>Polymorphic inline caches (1991).</b> Each call site remembers the handful of receiver types it has actually seen and jumps straight to the right method. As a side effect, the caches record which types really occur where.</li>
+          <li><b>Dynamic deoptimisation (1992).</b> When you open a debugger, or change a method the optimised code relied on, turn the optimised frames back into simple ones that match the source. You get aggressive optimisation and a fully debuggable, changeable language at the same time.</li>
+          <li><b>Type feedback and adaptive recompilation (1994).</b> Start with a quick, simple compiler. Watch the program run. When some code turns out to be hot, recompile it, optimised for the types the caches actually saw, inlining aggressively.</li>
+        </ol>
+        <p>The result, according to its authors, ran some benchmarks at around half the speed of optimised C, in a language with no classes, no static types and messages for everything.</p>
+
+        <h3>So where was the revolution?</h3>
+        <p>Not in the prototypes; other people had prototypes. Not in the syntax, which is Smalltalk's. The revolution was a reversal of who adapts to whom. Before Self, language designers bent the language to fit the compiler: declare your types, fix your classes, keep things static so the compiler can cope. Self made the language as simple and dynamic as people wanted and made the virtual machine learn the program's real behaviour while it ran: <b>speculate, optimise, and back out when wrong</b>.</p>
+        <p>Every serious dynamic-language engine works that way now. That is how Self ended up running nearly everywhere, without anyone running Self.</p>
+        <div class="diagram" role="img" aria-label="Lineage of the Self virtual machine: Self VM, then Strongtalk at Animorphic Systems, then Java HotSpot at Sun in 1999, then V8 at Google in 2008, then Node.js and every Chrome tab.">
+          <div class="lineage">
+            <div class="nd hi">Self VM <small>Stanford, Sun · 1987 – 95</small></div><span class="ar">→</span>
+            <div class="nd">Strongtalk <small>Animorphic Systems · mid 90s</small></div><span class="ar">→</span>
+            <div class="nd">Java HotSpot <small>Sun buys Animorphic in 1997 · ships 1999</small></div><span class="ar">→</span>
+            <div class="nd js">V8 <small>Google, led by Lars Bak · 2008</small></div><span class="ar">→</span>
+            <div class="nd js">Chrome, Node.js, Deno, Electron <small>today</small></div>
+          </div>
+          <div class="cap">Lars Bak worked on Self, Strongtalk and HotSpot before leading V8. Robert Griesemer, who later co-designed the Go language, worked on Strongtalk, HotSpot and V8. The ideas travelled with the people.</div>
+        </div>
+        <p>V8 still calls its hidden classes <b>Maps</b>, the same word the Self papers used. Every “initialise your properties in the same order” performance tip you've read for JavaScript is advice about keeping objects on the same map.</p>
+        <p>Now time something. The Self in this book is a straightforward interpreter, written in Rust and compiled to WebAssembly. It has none of the tricks above, so it's a good deal slower than the real Self VM was in 1995:</p>
+        <div class="cell self"><textarea rows="1">[ 25 fibonacci ] msecToRun</textarea></div>
+        <aside class="box irony">
+          <span class="label">Irony meter</span>
+          <p>If you're reading this in Chrome, that WebAssembly was compiled by V8, a grandchild of the Self VM. You just ran Self inside its own grandson. It's like being driven to the retirement home by your grandson, in a car you designed, while he explains how cars work.</p>
+        </aside>
+      </section>
+
+      <!-- ===================================================== 6 -->
+      <section class="chapter" id="father" aria-labelledby="h6">
+        <div class="num">Chapter 6</div>
+        <h2 id="h6">No, I am your father</h2>
+        <blockquote class="epigraph"><p>“No. I am your father.”</p><cite>The actual line</cite></blockquote>
+
+        <p>May 1995, Netscape. Brendan Eich has about ten days to build a language for the browser. He wanted to put Scheme in Netscape; management wanted it to look like Java, the hot new language from Sun. What he shipped has <b>Java's syntax</b>, <b>Scheme's first-class functions</b>, and <b>Self's objects</b>. It was called Mocha, then LiveScript, and in December 1995, after a marketing agreement with Sun, JavaScript.</p>
+        <aside class="box irony">
+          <span class="label">Irony meter</span>
+          <p>The child with Self's soul was named after Java, the language that Self's own engineers were about to make fast. The kid was named after the neighbour, and the neighbour's car had the father's engine in it.</p>
+        </aside>
+        <p>Here's the reveal, in both languages. First Self:</p>
+        <div class="cell self" data-needs="son"><textarea rows="4">| kid |
+kid: son copy.
+kid name: 'Luke'.
+kid reveal</textarea></div>
+        <p>And the same family in JavaScript. <code>Object.create(father)</code> makes a new object whose parent slot, its <code>[[Prototype]]</code>, is <code>father</code>:</p>
+        <div class="cell js"><textarea rows="10">const father = {
+  name: 'Self',
+  reveal() { return this.name + ': I am your father.'; }
+};
+const son = Object.create(father);   // parent* = father
+son.name = 'JavaScript';
+const kid = Object.create(son);
+kid.name = 'Luke';
+
+kid.reveal();</textarea></div>
+        <p>It's the same object model: objects made of named properties, delegation to a parent, and <code>this</code> bound to the original receiver, so the father's method speaks in the kid's name. Squint and the two programs are the same program.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Idea</th><th>Self (1986)</th><th>JavaScript</th></tr></thead>
+            <tbody>
+              <tr><td>Parent</td><td><code>parent* = father</code></td><td><code>[[Prototype]]</code>, <code>Object.create(father)</code></td></tr>
+              <tr><td>New object</td><td><code>father copy</code></td><td><code>Object.create(…)</code>, <code>{ ...father }</code></td></tr>
+              <tr><td>Inherited version</td><td><code>resend.reveal</code></td><td><code>super.reveal()</code></td></tr>
+              <tr><td>Change parents</td><td><code>son parent: smalltalk</code></td><td><code>Object.setPrototypeOf(son, smalltalk)</code></td></tr>
+              <tr><td>Add to a live object</td><td><code>_AddSlots: (| age &lt;- 3 |)</code></td><td><code>son.age = 3</code></td></tr>
+              <tr><td>Look inside</td><td><code>(reflect: son) names</code></td><td><code>Reflect.ownKeys(son)</code></td></tr>
+              <tr><td>Closures</td><td><code>[| :x | x * 2 ]</code></td><td><code>x =&gt; x * 2</code></td></tr>
+              <tr><td>Hidden layouts</td><td>maps (1989)</td><td>hidden classes, which V8 calls Maps</td></tr>
+              <tr><td>Call-site caches</td><td>polymorphic inline caches (1991)</td><td>inline caches in every major engine</td></tr>
+              <tr><td>Return from the enclosing method</td><td><code>^</code> inside a block</td><td>not possible; <code>return</code> only leaves the arrow function</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>What the son did better</h3>
+        <p>Remember the trap at the end of chapter 4, where the kid renamed his father? JavaScript fixed it. Assigning to a property the object doesn't have creates a new property on <i>that object</i>, which shadows the parent's instead of overwriting it:</p>
+        <div class="cell js"><textarea rows="5">const father = { name: 'Self' };
+const kid = Object.create(father);
+kid.name = 'Luke';            // creates the kid's own slot
+
+[father.name, kid.name, Object.hasOwn(kid, 'name')];</textarea></div>
+        <p>It was a good decision. In return, JavaScript has only one parent per object (Self allowed many) and no non-local return. It also has no live environment, unless you count the developer tools: expand an object in your browser's console and you'll find a little outliner with a <code>[[Prototype]]</code> slot at the bottom.</p>
+
+        <h3>What the son did to look respectable</h3>
+        <p>To make prototypes feel familiar to Java programmers, JavaScript added <code>new</code> and constructor functions. Every function got a <code>prototype</code> property, which becomes the parent of the objects that <code>new</code> makes. That arrangement meant that for two decades JavaScript developers had to learn the difference between <code>prototype</code> (a property of functions) and <code>__proto__</code> (the actual parent link). The plain, Self-style way to make an object with a given parent, <code>Object.create</code>, wasn't standard until 2009, after Douglas Crockford spent years arguing for it.</p>
+        <p>And the father's two gifts fight each other inside the son. Changing an object's parent at run time is a Self feature; hidden classes are a Self optimisation. Combine them in JavaScript and the optimisation punishes you for using the feature:</p>
+        <div class="cell js"><textarea rows="8">const smalltalk = { reveal() { return 'I am your grandfather. I have classes.'; } };
+const father = { reveal() { return 'I am your father.'; } };
+const son = Object.create(father);
+
+const before = son.reveal();
+Object.setPrototypeOf(son, smalltalk);   // allowed. MDN begs you not to.
+[before, son.reveal()];</textarea></div>
+        <p>It works. MDN's documentation for <code>setPrototypeOf</code> opens with a warning that changing an object's prototype is very slow in every engine, because of how engines optimise property access. That optimisation is the Self VM's.</p>
+      </section>
+
+      <!-- ===================================================== 7 -->
+      <section class="chapter" id="helmet" aria-labelledby="h7">
+        <div class="num">Chapter 7</div>
+        <h2 id="h7">The son puts on the helmet</h2>
+        <blockquote class="epigraph"><p>“Search your feelings. You know it to be true.”</p><cite>To anyone who thinks JavaScript has classes</cite></blockquote>
+
+        <p>In 2015, twenty years after it was born with prototypes, JavaScript got the <code>class</code> keyword. The son dressed up as the very thing his father had deleted. But a helmet only changes how you look:</p>
+        <div class="cell js"><textarea rows="11">class Father { reveal() { return 'I am your father.'; } }
+class Son extends Father {}
+const luke = new Son();
+
+({
+  'typeof Father':                     typeof Father,
+  "luke's parent is Son.prototype":    Object.getPrototypeOf(luke) === Son.prototype,
+  "its parent is Father.prototype":    Object.getPrototypeOf(Son.prototype) === Father.prototype,
+  'luke owns':                         Reflect.ownKeys(luke),
+  'luke.reveal()':                     luke.reveal(),
+})</textarea></div>
+        <p>A class is a function. <code>extends</code> builds a prototype chain. <code>luke</code> owns nothing and borrows everything, exactly like the son in chapter 2. ES2015 classes do add real things, such as stricter constructors and cleaner <code>super</code>, but the object model under the helmet is still Self's.</p>
+        <aside class="box irony">
+          <span class="label">Irony meter</span>
+          <p>The class syntax came with <code>extends</code>, and with <code>extends</code> came the fragile base class problem in its familiar form. Then, in 2022, JavaScript added <code>#private</code> fields, which subclasses can't touch, so renaming one can't break a subclass. That's one way to solve the problem Smalltalk's open instance variables created, and Self's “everything is a message” was another. Meanwhile React, the most popular UI library, switched its recommended style from class components to plain functions with hooks in 2019. The son put the helmet on, then gradually took it off again.</p>
+        </aside>
+        <p>One more family resemblance. Strongtalk, the Smalltalk built by Self's VM team at Animorphic, also had an <i>optional</i> type system: you could add types to a dynamic language, have them checked, and the program would run the same either way. Today the most popular optional type system in the world is TypeScript's, and like Self it cares about what an object can do rather than what it's called. The grandson who said “now with types” in chapter 3 wasn't wrong.</p>
+      </section>
+
+      <!-- ===================================================== 8 -->
+      <section class="chapter" id="matters" aria-labelledby="h8">
+        <div class="num">Chapter 8</div>
+        <h2 id="h8">Why it matters</h2>
+        <blockquote class="epigraph"><p>“Pass on what you have learned.”</p><cite>Good advice for languages, too</cite></blockquote>
+
+        <p>As a product, Self was a failure. It never went mainstream, never had a big community and never shipped in a browser. As a set of ideas it was one of the most successful projects in the history of programming, and it won three separate times:</p>
+        <ul>
+          <li><b>Its objects won.</b> Every JavaScript object, which means most objects created on Earth today, is a Self object with Java's haircut.</li>
+          <li><b>Its virtual machine won.</b> Adaptive optimisation, inline caches, hidden classes and deoptimisation run in HotSpot, in V8 and in many other engines. The idea that the runtime should learn from the running program is now simply how fast dynamic languages are built.</li>
+          <li><b>Its liveness won, partly.</b> Self 4.0's Morphic, by John Maloney and Randy Smith, let you grab any object on screen, look inside it and change it while it ran. Morphic moved to Squeak and Pharo Smalltalk and to the browser in the Lively Kernel, and every “edit and see it instantly” tool is a distant cousin.</li>
+        </ul>
+        <p>Underneath those wins are three lessons that still apply:</p>
+        <ol class="plain">
+          <li><b>Keep the language simple and let the implementation be clever.</b> Programmers shouldn't have to contort their code so a compiler can understand it. Self showed that the machine can do the understanding.</li>
+          <li><b>Concrete beats abstract.</b> People find it easier to copy an example and change it than to write a description of every possible example. Design tools rediscovered this: a component with instances that override some of its properties is a prototype with children.</li>
+          <li><b>One way in makes change cheap.</b> When everything is a message, a parent can change how it works without its children noticing. That's the structural half of the fragile class problem, solved by removing a distinction rather than adding a rule.</li>
+        </ol>
+        <p>So the next time someone tells you JavaScript is Java's little brother, you can correct them, and get the quote right while you're at it:</p>
+        <p style="font-size:24px; text-align:center; margin:30px 0; font-family:var(--sans); font-weight:700;">“No. <span style="color:var(--accent)">Self</span> is your father.”</p>
+
+        <div class="ending">
+          <h3>Now go and poke it</h3>
+          <p>The playground is a blank page with every example from this book. The desktop is the full Self World: outliners for every object, a shell, and Morphic windows made of Self objects.</p>
+          <div class="btns">
+            <a class="btn primary" href="../play/">Open the playground ▶</a>
+            <a class="btn" href="../try/">Open the desktop</a>
+            <a class="btn" href="../#tour">5-minute tour</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="chapter" id="reading" aria-labelledby="h9">
+        <div class="num">Appendix</div>
+        <h2 id="h9">Further reading</h2>
+        <p>The primary sources are short and surprisingly readable. They are listed in the order this book uses them.</p>
+        <ol class="refs">
+          <li>L. Peter Deutsch and Allan M. Schiffman, <i>Efficient Implementation of the Smalltalk-80 System</i>, POPL 1984.</li>
+          <li>Henry Lieberman, <i>Using Prototypical Objects to Implement Shared Behavior in Object-Oriented Systems</i>, OOPSLA 1986.</li>
+          <li>David Ungar and Randall B. Smith, <i>Self: The Power of Simplicity</i>, OOPSLA 1987.</li>
+          <li>Craig Chambers, David Ungar and Elgin Lee, <i>An Efficient Implementation of SELF, a Dynamically-Typed Object-Oriented Language Based on Prototypes</i>, OOPSLA 1989.</li>
+          <li>David Ungar, Craig Chambers, Bay-Wei Chang and Urs Hölzle, <i>Organizing Programs Without Classes</i>, Lisp and Symbolic Computation, 1991.</li>
+          <li>Urs Hölzle, Craig Chambers and David Ungar, <i>Optimizing Dynamically-Typed Object-Oriented Languages With Polymorphic Inline Caches</i>, ECOOP 1991.</li>
+          <li>Urs Hölzle, Craig Chambers and David Ungar, <i>Debugging Optimized Code with Dynamic Deoptimization</i>, PLDI 1992.</li>
+          <li>Urs Hölzle and David Ungar, <i>Optimizing Dynamically-Dispatched Calls with Run-Time Type Feedback</i>, PLDI 1994.</li>
+          <li>Leonid Mikhajlov and Emil Sekerinski, <i>A Study of the Fragile Base Class Problem</i>, ECOOP 1998.</li>
+          <li>David Ungar and Randall B. Smith, <i>Self</i>, History of Programming Languages III, 2007. The story told by the people who lived it.</li>
+          <li>Allen Wirfs-Brock and Brendan Eich, <i>JavaScript: The First 20 Years</i>, History of Programming Languages IV, 2020.</li>
+          <li>The Self project, still maintained by its community: <a href="https://selflanguage.org">selflanguage.org</a>.</li>
+        </ol>
+      </section>
+    </article>
+  </div>
+
+  <footer>
+    <i>No, I Am Your Father</i>, a mini book from Self World, an independent Self implementation in Rust. Self was created by David Ungar and Randall B. Smith.
+    Star Wars lines are quoted, and misquoted, affectionately.<br>
+    <a href="../">Home</a> · <a href="../play/">Playground</a> · <a href="../try/">Desktop</a> · <a href="https://github.com/Volland/self-lang-rs">GitHub</a>
+  </footer>
+
+  <script type="module">
+    const dir = location.pathname.endsWith('/') ? location.pathname : location.pathname.replace(/[^/]*$/, '');
+    const engineModule = import(dir + '../engine.js');
+    let selfEngine = null;
+    async function getSelf() {
+      if (!selfEngine) {
+        const { createSelf } = await engineModule;
+        selfEngine = createSelf();
+        selfEngine.on(() => { defined.clear(); });
+      }
+      return selfEngine;
+    }
+
+    // ---- cells ------------------------------------------------------------
+    const cells = [...document.querySelectorAll('.cell')];
+    const definers = new Map();                 // 'father' -> its cell
+    const defined = new Set();                  // names made in the current world
+    for (const c of cells) if (c.dataset.defines) definers.set(c.dataset.defines, c);
+    const needsOf = (c) => (c.dataset.needs || '').split(/\s+/).filter(Boolean);
+
+    // the cells that must run before this one, earliest first
+    function setupChain(cell, seen = new Set(), chain = []) {
+      for (const name of needsOf(cell)) {
+        const d = definers.get(name);
+        if (!d || seen.has(name)) continue;
+        seen.add(name);
+        setupChain(d, seen, chain);
+        chain.push(d);
+      }
+      return chain;
+    }
+
+    const LOCALS = /^\s*(\|[^|]*\|)/;
+    function playgroundCode(cell) {
+      const own = cell.querySelector('textarea').value;
+      const chain = setupChain(cell);
+      if (!chain.length) return own;
+      const m = own.match(LOCALS);
+      const locals = m ? m[1] + '\n' : '';
+      const body = m ? own.slice(m[0].length).replace(/^\n/, '') : own;
+      const setup = chain.map((d) => d.querySelector('textarea').value.trim().replace(/\.?$/, '.')).join('\n\n');
+      return locals + '"Made in earlier chapters of the book:"\n' + setup + '\n\n"This example:"\n' + body;
+    }
+
+    function fmt(v, depth = 0) {
+      if (typeof v === 'string') return depth ? JSON.stringify(v).replace(/^"|"$/g, "'") : "'" + v + "'";
+      if (typeof v === 'function') return v.toString().startsWith('class') ? '[class ' + v.name + ']' : '[function ' + (v.name || 'anonymous') + ']';
+      if (typeof v === 'symbol' || typeof v === 'bigint') return String(v) + (typeof v === 'bigint' ? 'n' : '');
+      if (v === null || typeof v !== 'object') return String(v);
+      if (depth > 3) return '…';
+      if (Array.isArray(v)) return '[' + v.map((x) => fmt(x, depth + 1)).join(', ') + ']';
+      const keys = Reflect.ownKeys(v).filter((k) => typeof k === 'string');
+      if (!keys.length) return '{}';
+      const lines = keys.map((k) => (depth ? '' : '  ') + k + ': ' + fmt(v[k], depth + 1));
+      return depth ? '{ ' + lines.join(', ') + ' }' : '{\n' + lines.join(',\n') + '\n}';
+    }
+
+    function runJs(code) {
+      const printed = [];
+      const orig = console.log;
+      console.log = (...a) => { printed.push(a.map((x) => typeof x === 'string' ? x : fmt(x)).join(' ')); orig.apply(console, a); };
+      try {
+        const value = (0, eval)(code);          // indirect eval: global scope, const/let stay local to the run
+        return { ok: true, result: fmt(value), printed: printed.join('\n') };
+      } catch (e) {
+        return { ok: false, result: (e && e.name ? e.name + ': ' : '') + (e && e.message || e), printed: printed.join('\n') };
+      } finally {
+        console.log = orig;
+      }
+    }
+
+    cells.forEach((cell, i) => {
+      const js = cell.classList.contains('js');
+      const ta = cell.querySelector('textarea');
+      ta.spellcheck = false;
+      ta.setAttribute('autocapitalize', 'off');
+      const label = js ? 'JavaScript' : 'Self';
+      ta.setAttribute('aria-label', label + ' code, example ' + (i + 1));
+
+      const head = document.createElement('div');
+      head.className = 'head';
+      head.innerHTML = '<span class="lang">' + (js ? 'JS' : 'Self') + '</span><span>' +
+        (js ? 'runs in your browser\'s own JavaScript engine' : 'runs on the Self engine, in WebAssembly') + '</span>';
+      cell.prepend(head);
+
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      const run = document.createElement('button');
+      run.className = 'run';
+      run.textContent = 'Run ▶';
+      run.setAttribute('aria-label', 'Run ' + label + ' example ' + (i + 1));
+      const hint = document.createElement('span');
+      hint.className = 'hint';
+      hint.textContent = 'Ctrl/⌘ + Enter';
+      const grow = document.createElement('span');
+      grow.className = 'grow';
+      bar.append(run, hint, grow);
+      let pg = null;
+      if (!js) {
+        pg = document.createElement('a');
+        pg.className = 'pg';
+        pg.textContent = 'Open in playground ↗';
+        pg.href = '../play/';
+        bar.append(pg);
+      }
+      const out = document.createElement('pre');
+      out.className = 'out idle';
+      out.setAttribute('aria-live', 'polite');
+      out.textContent = js ? 'Press Run to ask JavaScript.' : 'Press Run to ask Self.';
+      cell.append(bar, out);
+
+      if (pg) {
+        const refresh = async () => {
+          const { encodeCode } = await engineModule;
+          pg.href = '../play/#code=' + encodeCode(playgroundCode(cell));
+        };
+        pg.addEventListener('pointerenter', refresh);
+        pg.addEventListener('focus', refresh);
+        pg.addEventListener('click', (e) => { e.preventDefault(); refresh().then(() => { location.href = pg.href; }); });
+      }
+
+      const show = (r, setupNote) => {
+        out.textContent = '';
+        if (setupNote) out.append(Object.assign(document.createElement('span'), { className: 'setup', textContent: setupNote }));
+        if (r.printed) out.append(Object.assign(document.createElement('span'), { className: 'printed', textContent: r.printed.replace(/\n$/, '') }));
+        out.append(document.createTextNode((r.ok ? '→ ' : '⚠ ') + r.result));
+        if (!r.ok && r.trace && r.trace.length) out.append(document.createTextNode('\n  in ' + r.trace.slice(0, 3).join('\n  in ')));
+        out.className = 'out' + (r.ok ? '' : ' err');
+      };
+
+      let busy = false;
+      const go = async () => {
+        if (busy) return;
+        busy = true;
+        out.className = 'out idle';
+        if (js) {
+          show(runJs(ta.value));
+          busy = false;
+          return;
+        }
+        out.textContent = 'Starting Self…';
+        let stopTimer = null;
+        try {
+          const self = await getSelf();
+          stopTimer = setTimeout(() => {
+            if (!self.canStop) return;
+            out.textContent = 'Still running… ';
+            const stop = document.createElement('button');
+            stop.textContent = 'Stop';
+            stop.onclick = () => self.stop();
+            out.append(stop);
+          }, 1500);
+          const made = [];
+          for (const d of setupChain(cell)) {
+            if (defined.has(d.dataset.defines)) continue;
+            await self.eval(d.querySelector('textarea').value);
+            defined.add(d.dataset.defines);
+            made.push(d.dataset.defines);
+          }
+          const r = await self.eval(ta.value);
+          if (cell.dataset.defines && r.ok) defined.add(cell.dataset.defines);
+          show(r, made.length ? '(first made ' + made.join(', ') + ' from earlier chapters)' : '');
+        } catch (e) {
+          out.className = 'out err';
+          out.textContent = String(e.message || e);
+        } finally {
+          clearTimeout(stopTimer);
+          busy = false;
+        }
+      };
+      run.addEventListener('click', go);
+      ta.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); go(); }
+      });
+      // fit the box to its code
+      ta.rows = Math.max(1, ta.value.split('\n').length);
+    });
+
+    // ---- reading progress and the table of contents -----------------------
+    const bar = document.getElementById('progress');
+    const links = [...document.querySelectorAll('#toc ol a')];
+    const chapters = links.map((a) => document.querySelector(a.getAttribute('href')));
+    function onScroll() {
+      const h = document.documentElement;
+      bar.style.width = (100 * h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight)) + '%';
+      let current = 0;
+      chapters.forEach((c, i) => { if (c && c.getBoundingClientRect().top < 140) current = i; });
+      links.forEach((a, i) => a.classList.toggle('on', i === current));
+    }
+    addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  </script>
+</body>
+</html>

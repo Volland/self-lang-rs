@@ -22,5 +22,13 @@ try {
   console.error('\nwasm-bindgen is needed: cargo install wasm-bindgen-cli --version 0.2.128\n');
   process.exit(1);
 }
+// the homepage and the shared engine loader sit next to the program files
 cpSync(join(root, 'web', 'index.html'), join(dist, 'index.html'));
+cpSync(join(root, 'web', 'engine.js'), join(dist, 'engine.js'));
+cpSync(join(root, 'web', 'engine-worker.js'), join(dist, 'engine-worker.js'));
+// each other page gets its own folder, so it has a clean address (try/, play/, book/)
+for (const [page, folder] of [['try.html', 'try'], ['play.html', 'play'], ['book.html', 'book']]) {
+  mkdirSync(join(dist, folder), { recursive: true });
+  cpSync(join(root, 'web', page), join(dist, folder, 'index.html'));
+}
 console.log('Built Self World for the web in dist/');

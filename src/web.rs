@@ -94,6 +94,14 @@ pub fn eval_self(src: &str) -> JsValue {
     out.into()
 }
 
+/// Throw away the text shell's world, so the next evaluation starts from a
+/// fresh lobby (used by the playground's "New world" button).
+#[wasm_bindgen]
+pub fn reset_world() {
+    LITE.with(|cell| *cell.borrow_mut() = None);
+    STARTED.with(|s| s.set(false));
+}
+
 /// The example programs, as `[[title, code], ...]`.
 #[wasm_bindgen]
 pub fn example_list() -> JsValue {

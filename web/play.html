@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Self Playground</title>
+  <meta name="description" content="Write and run Self, the prototype-based language behind JavaScript's objects, in your browser. No install, no sign-up.">
+  <meta property="og:title" content="Self Playground">
+  <meta property="og:description" content="Run Self code in your browser: objects, slots, prototypes and blocks, on a Rust engine compiled to WebAssembly.">
+  <meta name="theme-color" content="#0e1016">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='12' y='2' width='18' height='18' rx='5' fill='%238b7bff' fill-opacity='.55'/%3E%3Crect x='2' y='12' width='18' height='18' rx='5' fill='%238b7bff'/%3E%3C/svg%3E" type="image/svg+xml">
+  <style>
+    :root {
+      --bg: #0e1016; --panel: #13161e; --card: #171b24; --raised: #20252f; --stroke: #2c3240; --well: #0b0d12;
+      --text: #e6e9f0; --soft: #c2c7d4; --faint: #8a93a6; --accent: #8b7bff; --accent-soft: #2a264d;
+      --ok: #5ed6a0; --err: #ff6b6b; --warn: #ffb86b; --obj: #7cc4ff;
+      --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: -apple-system, "Segoe UI", system-ui, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); }
+    body { font: 15px/1.5 var(--sans); min-height: 100vh; display: flex; flex-direction: column; }
+    a { color: var(--accent); }
+    code { font-family: var(--mono); font-size: .92em; }
+
+    header.top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--panel) 92%, transparent);
+      backdrop-filter: blur(8px); border-bottom: 1px solid var(--stroke); }
+    header.top .bar { display: flex; align-items: center; gap: 18px; height: 52px; padding: 0 16px; max-width: 1480px; margin: 0 auto; }
+    .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 16.5px; white-space: nowrap; }
+    .brand span.sub { color: var(--faint); font-weight: 500; }
+    .mark { position: relative; width: 22px; height: 22px; flex: none; }
+    .mark i { position: absolute; width: 14px; height: 14px; border-radius: 4px; }
+    .mark i:first-child { left: 8px; top: 0; background: #8b7bff8c; }
+    .mark i:last-child { left: 0; top: 8px; background: var(--accent); }
+    nav.links { display: flex; gap: 16px; margin-left: auto; font-size: 14px; align-items: center; }
+    nav.links a { color: var(--faint); text-decoration: none; white-space: nowrap; }
+    nav.links a:hover, nav.links a[aria-current] { color: var(--text); }
+    nav.links a.desk { border: 1px solid var(--stroke); border-radius: 8px; padding: 4px 12px; color: var(--text); }
+    nav.links a.desk:hover { border-color: var(--accent); }
+
+    main { flex: 1; display: grid; grid-template-columns: 230px minmax(0, 1fr) 290px; gap: 16px; padding: 16px;
+      max-width: 1480px; width: 100%; margin: 0 auto; }
+    .panel { background: var(--card); border: 1px solid var(--stroke); border-radius: 12px; min-width: 0; }
+    .panel > h2 { font-size: 12.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--faint); margin: 0; padding: 12px 14px 8px; }
+
+    /* examples */
+    #examples { padding: 0 6px 10px; overflow: auto; max-height: calc(100vh - 100px); position: sticky; top: 68px; align-self: start; }
+    #examples h3 { font-size: 12px; color: var(--accent); margin: 12px 8px 4px; font-weight: 700; }
+    #examples button { display: block; width: 100%; text-align: left; font: inherit; font-size: 14px; color: var(--soft);
+      background: none; border: 1px solid transparent; border-radius: 7px; padding: 5px 8px; cursor: pointer; }
+    #examples button:hover { background: var(--raised); color: var(--text); }
+    #examples button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    #examples a.ext { display: block; font-size: 14px; color: var(--faint); padding: 5px 8px; text-decoration: none; border-radius: 7px; }
+    #examples a.ext:hover { background: var(--raised); color: var(--text); }
+    #examples .loading { color: var(--faint); font-size: 13px; padding: 4px 8px; }
+
+    /* editor + console */
+    .work { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--stroke); }
+    .toolbar .grow { flex: 1; }
+    button.b { font: inherit; font-size: 14px; color: var(--text); background: var(--raised); border: 1px solid var(--stroke);
+      border-radius: 8px; padding: 5px 12px; cursor: pointer; white-space: nowrap; }
+    button.b:hover { border-color: var(--accent); }
+    button.b:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    button.b.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    button.b.stop { background: #4a1f25; border-color: var(--err); color: #ffd6d6; }
+    button.b[hidden] { display: none; }
+    kbd { font: 11.5px var(--mono); color: var(--faint); border: 1px solid var(--stroke); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; }
+    .status { font-size: 13px; color: var(--faint); display: inline-flex; align-items: center; gap: 6px; }
+    .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
+    .status.ready .dot { background: var(--ok); }
+    .status.busy .dot { background: var(--accent); animation: blink 1s ease-in-out infinite; }
+    @keyframes blink { 50% { opacity: .3; } }
+    @media (prefers-reduced-motion: reduce) { .status.busy .dot { animation: none; } }
+
+    .editor { display: grid; grid-template-columns: auto minmax(0, 1fr); background: var(--well); border-radius: 0 0 12px 12px; }
+    .gutter { margin: 0; padding: 14px 8px 14px 14px; color: #4b5366; font: 14px/1.6 var(--mono); text-align: right; user-select: none;
+      overflow: hidden; border-right: 1px solid #1b1f29; }
+    #code { width: 100%; min-height: 300px; height: 44vh; resize: vertical; border: 0; outline: none; background: transparent; color: var(--text);
+      font: 14px/1.6 var(--mono); padding: 14px; white-space: pre; overflow: auto; tab-size: 2; caret-color: var(--accent); border-radius: 0 0 12px 0; }
+    #code:focus-visible { box-shadow: inset 0 0 0 2px var(--accent-soft); }
+
+    .console-head { display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 14px; border-bottom: 1px solid var(--stroke); }
+    .console-head h2 { font-size: 12.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--faint); margin: 0; }
+    .console-head .grow { flex: 1; }
+    #out { padding: 6px 14px 14px; display: flex; flex-direction: column; min-height: 140px; max-height: 50vh; overflow: auto; }
+    #out .empty { color: var(--faint); font-size: 14px; padding: 10px 0; }
+    .entry { border-bottom: 1px solid var(--stroke); padding: 10px 0; }
+    .entry:last-child { border-bottom: 0; }
+    .entry pre { margin: 0; font: 13.5px/1.5 var(--mono); white-space: pre-wrap; word-break: break-word; }
+    .entry .src { color: var(--faint); max-height: 4.5em; overflow: hidden; position: relative; }
+    .entry .src::before { content: "› "; color: var(--accent); }
+    .entry .printed { color: var(--soft); margin-top: 4px; }
+    .entry .res { color: var(--ok); margin-top: 4px; }
+    .entry .res::before { content: "→ "; color: var(--faint); }
+    .entry .res.err { color: var(--err); }
+    .entry .res.err::before { content: "⚠ "; }
+    .entry .trace { color: var(--faint); font-size: 12.5px; }
+    .entry .meta { color: #5d667a; font-size: 12px; margin-top: 4px; }
+    .entry.note pre { color: var(--warn); }
+
+    /* cheat sheet */
+    #sheet { padding-bottom: 6px; align-self: start; position: sticky; top: 68px; max-height: calc(100vh - 100px); overflow: auto; }
+    #sheet dl { margin: 0; padding: 0 14px 8px; }
+    #sheet dt { font: 13px/1.45 var(--mono); color: var(--obj); margin-top: 10px; word-break: break-word; }
+    #sheet dd { margin: 2px 0 0; color: var(--soft); font-size: 13.5px; }
+    #sheet p.more { margin: 8px 14px 10px; font-size: 13.5px; color: var(--faint); }
+
+    .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--raised); border: 1px solid var(--accent);
+      color: var(--text); padding: 8px 14px; border-radius: 10px; font-size: 14px; box-shadow: 0 10px 28px #0009; z-index: 20; }
+
+    @media (max-width: 1180px) {
+      main { grid-template-columns: 210px minmax(0, 1fr); }
+      #sheet { grid-column: 1 / -1; position: static; max-height: none; }
+      #sheet dl { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); column-gap: 18px; }
+    }
+    @media (max-width: 760px) {
+      header.top .bar { gap: 10px; }
+      nav.links { gap: 12px; }
+      nav.links a.hide-sm { display: none; }
+      .brand span.sub { display: none; }
+      main { grid-template-columns: minmax(0, 1fr); padding: 12px; gap: 12px; }
+      #examples { position: static; max-height: 210px; order: 2; }
+      .work { order: 1; }
+      #sheet { order: 3; }
+      #code { height: 38vh; min-height: 220px; font-size: 13.5px; }
+      .gutter { font-size: 13.5px; padding-left: 8px; }
+      .toolbar .hint-keys { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../"><span class="mark"><i></i><i></i></span>Self World <span class="sub">/ Playground</span></a>
+      <nav class="links" aria-label="Site">
+        <a class="hide-sm" href="../#tour">Tour</a>
+        <a href="./" aria-current="page">Playground</a>
+        <a href="../book/">Book</a>
+        <a class="desk" href="../try/" title="The full outliner desktop with Morphic windows">Desktop ▶</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <nav class="panel" id="examples" aria-label="Examples">
+      <h2>Examples</h2>
+      <div id="example-list"><div class="loading">Loading examples…</div></div>
+    </nav>
+
+    <div class="work">
+      <section class="panel" aria-label="Editor">
+        <div class="toolbar">
+          <button class="b primary" id="run" title="Run the code (or just the selected lines)">Run ▶</button>
+          <button class="b stop" id="stop" hidden title="Stop the running program and restart the world">■ Stop</button>
+          <span class="hint-keys"><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd></span>
+          <span class="status" id="status" role="status"><span class="dot"></span><span id="status-text">Loading the Self engine…</span></span>
+          <span class="grow"></span>
+          <button class="b" id="share" title="Copy a link that opens this code">Share link</button>
+          <button class="b" id="open" title="Load a .self file into the world">Load .self</button>
+          <button class="b" id="save" title="Download this code as a .self file">Save</button>
+          <button class="b" id="reset" title="Throw away every object you made and start from a fresh lobby">New world</button>
+        </div>
+        <div class="editor">
+          <pre class="gutter" id="gutter" aria-hidden="true">1</pre>
+          <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Self code"
+            aria-describedby="code-help"></textarea>
+        </div>
+      </section>
+      <p id="code-help" hidden>Ctrl or Command plus Enter runs the code, or only the selected lines. Tab indents; press Escape and then Tab to leave the editor.</p>
+
+      <section class="panel" aria-label="Transcript">
+        <div class="console-head">
+          <h2>Transcript</h2>
+          <span class="grow"></span>
+          <button class="b" id="clear">Clear</button>
+        </div>
+        <div id="out" aria-live="polite">
+          <div class="empty">Results appear here. Every run shares one world, so objects you add to the <code>lobby</code> stay until you press <b>New world</b>.</div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="panel" id="sheet" aria-label="Self in one minute">
+      <h2>Self in one minute</h2>
+      <dl>
+        <dt>3 + 4 * 2</dt><dd>Messages, not operators. Binary messages go left to right: this is 14.</dd>
+        <dt>'abc' reverse size</dt><dd>Unary messages bind tightest, then binary, then keyword.</dd>
+        <dt>v at: 0 Put: 'x'</dt><dd>A keyword message. Every part after the first starts with a capital.</dd>
+        <dt>(| x &lt;- 1. y = 2. sum = ( x + y ) |)</dt><dd>An object: an assignable slot, a constant slot and a method.</dd>
+        <dt>parent* = traits clonable</dt><dd>A star makes a parent slot. Messages the object doesn't understand go to its parents.</dd>
+        <dt>dog copy</dt><dd>No classes. New objects are copies of a prototype.</dd>
+        <dt>| a. b | a: 3.</dt><dd>Locals between bars. <code>a: 3</code> is a message that assigns.</dd>
+        <dt>[| :x | x * 2 ] value: 21</dt><dd>A block: a closure. <code>ifTrue:False:</code> is a message that takes blocks.</dd>
+        <dt>resend.speak</dt><dd>Run the inherited <code>speak</code>, like <code>super</code>.</dd>
+        <dt>lobby _AddSlots: (| dog = … |)</dt><dd>Add slots to a live object. The lobby is where names like <code>dog</code> live.</dd>
+        <dt>x printLine</dt><dd>Print to the transcript. <code>(reflect: x) names</code> lists slots.</dd>
+        <dt>"a comment"</dt><dd>Comments go in double quotes; strings in single quotes.</dd>
+      </dl>
+      <p class="more">New here? Take the <a href="../#tour">5-minute tour</a> or read the <a href="../book/">mini book</a>.</p>
+    </aside>
+  </main>
+
+  <input type="file" id="file" accept=".self,text/plain" multiple hidden>
+
+  <script type="module">
+    const dir = location.pathname.endsWith('/') ? location.pathname : location.pathname.replace(/[^/]*$/, '');
+    const { createSelf, encodeCode, decodeCode } = await import(dir + '../engine.js');
+
+    const $ = (id) => document.getElementById(id);
+    const code = $('code'), gutter = $('gutter'), out = $('out');
+    const status = $('status'), statusText = $('status-text');
+    const runBtn = $('run'), stopBtn = $('stop');
+    const DRAFT = 'self-playground-draft';
+    const store = {
+      get() { try { return localStorage.getItem(DRAFT); } catch (e) { return null; } },
+      set(v) { try { localStorage.setItem(DRAFT, v); } catch (e) {} },
+    };
+
+    const WELCOME = `"Welcome to the Self playground. Press Run, or Ctrl/⌘ + Enter."
+"Select a few lines to run only those."
+
+lobby _AddSlots: (|
+  father = (| parent* = traits clonable.
+              name <- 'Self'.
+              born = 1986.
+              reveal = ( name, ': I am your father.' ) |)
+|).
+
+lobby _AddSlots: (|
+  son = (| parent* <- father.
+           name <- 'JavaScript'.
+           born = 1995 |)
+|).
+
+son reveal`;
+
+    // ---- the editor -------------------------------------------------------
+    let lines = 0;
+    function syncGutter() {
+      const n = code.value.split('\n').length;
+      if (n !== lines) { lines = n; gutter.textContent = Array.from({ length: n }, (_, i) => i + 1).join('\n'); }
+      gutter.scrollTop = code.scrollTop;
+    }
+    code.addEventListener('input', () => { syncGutter(); store.set(code.value); });
+    code.addEventListener('scroll', () => { gutter.scrollTop = code.scrollTop; });
+    let tabLeaves = false;
+    code.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); run(); return; }
+      if (e.key === 'Escape') { tabLeaves = true; return; }
+      if (e.key === 'Tab' && !tabLeaves && !e.shiftKey) {
+        e.preventDefault();
+        document.execCommand('insertText', false, '  ') || code.setRangeText('  ', code.selectionStart, code.selectionEnd, 'end');
+        return;
+      }
+      tabLeaves = false;
+    });
+    code.addEventListener('blur', () => { tabLeaves = false; });
+    function setCode(text, focus = true) {
+      code.value = text;
+      syncGutter();
+      store.set(text);
+      if (focus) { code.focus(); code.setSelectionRange(0, 0); code.scrollTop = 0; }
+    }
+
+    const fromHash = () => {
+      const h = new URLSearchParams(location.hash.slice(1)).get('code');
+      return h ? decodeCode(h) : null;
+    };
+    setCode(fromHash() ?? store.get() ?? WELCOME, false);
+    // a shared link opened while the playground is already open
+    addEventListener('hashchange', () => { const c = fromHash(); if (c != null && c !== code.value) setCode(c); });
+
+    // ---- the transcript ---------------------------------------------------
+    const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+    function addEntry(nodes, cls = 'entry') {
+      out.querySelector('.empty')?.remove();
+      const entry = el('div', cls);
+      entry.append(...nodes);
+      out.append(entry);
+      out.scrollTop = out.scrollHeight;
+      return entry;
+    }
+    function note(text) { addEntry([el('pre', '', text)], 'entry note'); }
+    function show(label, r) {
+      const nodes = [el('pre', 'src', label.length > 400 ? label.slice(0, 400) + '…' : label)];
+      if (r.printed) nodes.push(el('pre', 'printed', r.printed.replace(/\n$/, '')));
+      nodes.push(el('pre', 'res' + (r.ok ? '' : ' err'), r.result));
+      for (const t of r.trace || []) nodes.push(el('pre', 'trace', 'in ' + t));
+      for (const n of r.notes || []) nodes.push(el('pre', 'res err', n));
+      nodes.push(el('div', 'meta', (r.ms ?? 0).toFixed(1) + ' ms'));
+      addEntry(nodes);
+    }
+    $('clear').onclick = () => { out.textContent = ''; out.append(el('div', 'empty', 'Cleared. The world (and everything in it) is still there.')); };
+
+    // ---- the engine -------------------------------------------------------
+    const self = createSelf();
+    // a restart during a run is reported by that run's own entry
+    self.on((ev) => { if (ev.type === 'restart' && !busy) note(ev.reason); });
+    function setStatus(kind, text) { status.className = 'status ' + kind; statusText.textContent = text; }
+
+    let busy = false;
+    async function job(label, work) {
+      if (busy) return;
+      busy = true;
+      runBtn.disabled = true;
+      setStatus('busy', 'Running…');
+      const showStop = setTimeout(() => { if (self.canStop) stopBtn.hidden = false; }, 400);
+      try {
+        show(label, await work());
+      } catch (e) {
+        addEntry([el('pre', 'src', label.slice(0, 200)), el('pre', 'res err', String(e.message || e))]);
+      } finally {
+        clearTimeout(showStop);
+        stopBtn.hidden = true;
+        runBtn.disabled = false;
+        busy = false;
+        setStatus('ready', 'Ready');
+      }
+    }
+    function run() {
+      const sel = code.value.slice(code.selectionStart, code.selectionEnd);
+      const src = sel.trim() ? sel : code.value;
+      if (!src.trim()) return;
+      job(src.trim(), () => self.eval(src));
+    }
+    runBtn.onclick = run;
+    stopBtn.onclick = () => self.stop();
+    $('reset').onclick = async () => {
+      if (busy) { self.stop(); return; }
+      await self.reset();
+      note('New world: a fresh lobby. Everything you added is gone.');
+    };
+
+    // selection-aware label on the Run button
+    document.addEventListener('selectionchange', () => {
+      if (document.activeElement !== code) return;
+      const has = code.selectionEnd > code.selectionStart && code.value.slice(code.selectionStart, code.selectionEnd).trim();
+      runBtn.textContent = has ? 'Run selection ▶' : 'Run ▶';
+    });
+
+    // ---- files and links --------------------------------------------------
+    const fileInput = $('file');
+    $('open').onclick = () => fileInput.click();
+    fileInput.onchange = async () => {
+      for (const f of fileInput.files) {
+        const text = await f.text();
+        await job('load ' + f.name + '  (' + text.split('\n').length + ' lines)', () => self.load(f.name, text));
+      }
+      fileInput.value = '';
+    };
+    document.addEventListener('dragover', (e) => e.preventDefault());
+    document.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      for (const f of e.dataTransfer.files) {
+        const text = await f.text();
+        await job('load ' + f.name + '  (' + text.split('\n').length + ' lines)', () => self.load(f.name, text));
+      }
+    });
+    $('save').onclick = () => {
+      const a = el('a');
+      a.href = URL.createObjectURL(new Blob([code.value], { type: 'text/plain' }));
+      a.download = 'playground.self';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    };
+    function toast(text) {
+      const t = el('div', 'toast', text);
+      t.setAttribute('role', 'status');
+      document.body.append(t);
+      setTimeout(() => t.remove(), 2200);
+    }
+    $('share').onclick = async () => {
+      const url = location.origin + location.pathname + '#code=' + encodeCode(code.value);
+      history.replaceState(null, '', url);
+      try { await navigator.clipboard.writeText(url); toast('Link copied. It opens this code in the playground.'); }
+      catch (e) { toast('The link is in the address bar now.'); }
+    };
+
+    // ---- examples ---------------------------------------------------------
+    const BOOK = [
+      ['No, I am your father', WELCOME.split('\n').slice(3).join('\n')],
+      ['Assigning through a parent', `"Self assigns inherited slots in the parent. JavaScript doesn't."
+| kid |
+lobby _AddSlots: (| father = (| parent* = traits clonable.
+  name <- 'Self'.
+  reveal = ( name, ': I am your father.' ) |) |).
+kid: (| parent* = father |).
+kid name: 'Who am I?'.
+father reveal`],
+      ['Switch parents at run time', `| before. after |
+lobby _AddSlots: (|
+  father = (| parent* = traits clonable. reveal = ( 'I am your father.' ) |).
+  smalltalk = (| parent* = traits clonable. reveal = ( 'I am your grandfather. I have classes.' ) |)
+|).
+lobby _AddSlots: (| son = (| parent* <- father |) |).
+before: son reveal.
+son parent: smalltalk.
+after: son reveal.
+before, '  →  ', after`],
+      ['A field becomes a method', `| before |
+lobby _AddSlots: (| droid = (| parent* = traits clonable. battery <- 100 |) |).
+before: droid battery.
+droid _AddSlots: (| battery = ( 'none of your business' ) |).
+"callers still just say: droid battery"
+before printString, '  →  ', droid battery`],
+    ];
+    function exampleButton(title, src) {
+      const b = el('button', '', title);
+      b.title = src;
+      b.onclick = () => { setCode(src); };
+      return b;
+    }
+    (async () => {
+      const list = $('example-list');
+      try {
+        const examples = await self.examples();
+        list.textContent = '';
+        list.append(el('h3', '', 'Start here'));
+        const desktop = [];
+        for (const [title, src] of examples) {
+          if (/^Morphs:|outliner/i.test(title)) desktop.push(title);
+          else list.append(exampleButton(title, src));
+        }
+        list.append(el('h3', '', 'From the book'));
+        for (const [title, src] of BOOK) list.append(exampleButton(title, src));
+        if (desktop.length) {
+          list.append(el('h3', '', 'On the desktop'));
+          for (const title of desktop) {
+            const a = el('a', 'ext', title.replace(/^Morphs: /, '') + ' ↗');
+            a.href = '../try/';
+            a.title = 'Morphs and outliners need the full desktop: open it and pick this from the Examples menu';
+            list.append(a);
+          }
+        }
+        setStatus('ready', 'Ready');
+      } catch (e) {
+        list.textContent = '';
+        list.append(el('div', 'loading', 'Could not start Self: ' + (e.message || e)));
+        setStatus('', 'Self could not start in this browser');
+      }
+    })();
+  </script>
+</body>
+</html>
