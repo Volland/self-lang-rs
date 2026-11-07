@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>About the author · Self World</title>
+  <meta name="description" content="Volodymyr Pavlyshyn: principal engineer in Berlin, author of Self World and of 19 books on agent memory and knowledge graphs. Newsletter: Sovereign Agentic AI.">
+  <meta property="og:title" content="Volodymyr Pavlyshyn, the author of Self World">
+  <meta property="og:description" content="Principal engineer in Berlin. Books on agent memory and knowledge graphs, the Sovereign Agentic AI newsletter, and Self World.">
+  <meta name="theme-color" content="#0e1016">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='12' y='2' width='18' height='18' rx='5' fill='%238b7bff' fill-opacity='.55'/%3E%3Crect x='2' y='12' width='18' height='18' rx='5' fill='%238b7bff'/%3E%3C/svg%3E" type="image/svg+xml">
+  <style>
+    :root { --bg: #0e1016; --panel: #13161e; --card: #171b24; --raised: #20252f; --stroke: #2c3240; --text: #e6e9f0; --soft: #c2c7d4;
+      --faint: #8a93a6; --accent: #8b7bff; --accent-soft: #2a264d; --substack: #ff6719;
+      --sans: -apple-system, "Segoe UI", system-ui, Helvetica, Arial, sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); }
+    body { font: 16px/1.65 var(--sans); }
+    a { color: var(--accent); }
+    header.top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--panel) 92%, transparent);
+      backdrop-filter: blur(8px); border-bottom: 1px solid var(--stroke); }
+    header.top .bar { display: flex; align-items: center; gap: 16px; height: 52px; padding: 0 16px; max-width: 1100px; margin: 0 auto; }
+    .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-weight: 700; white-space: nowrap; }
+    .mark { position: relative; width: 22px; height: 22px; flex: none; }
+    .mark i { position: absolute; width: 14px; height: 14px; border-radius: 4px; }
+    .mark i:first-child { left: 8px; top: 0; background: #8b7bff8c; }
+    .mark i:last-child { left: 0; top: 8px; background: var(--accent); }
+    nav.links { display: flex; gap: 16px; margin-left: auto; font-size: 14px; }
+    nav.links a { color: var(--faint); text-decoration: none; white-space: nowrap; }
+    nav.links a:hover, nav.links a[aria-current] { color: var(--text); }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+    .hero { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 36px; align-items: center; padding: 48px 0 36px; }
+    .hero img { width: 220px; height: 220px; border-radius: 24px; object-fit: cover; border: 1px solid var(--stroke); }
+    .eyebrow { color: var(--accent); font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; margin: 0; }
+    h1 { font-size: clamp(32px, 5vw, 46px); line-height: 1.1; margin: 6px 0 10px; letter-spacing: -.02em; }
+    .role { color: var(--soft); font-size: 18px; margin: 0 0 18px; }
+    .btns { display: flex; flex-wrap: wrap; gap: 10px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 10px; border: 1px solid var(--stroke);
+      background: var(--raised); color: var(--text); text-decoration: none; font-weight: 600; font-size: 15px; }
+    .btn:hover { border-color: var(--accent); }
+    .btn.li { background: #0a66c2; border-color: #0a66c2; color: #fff; }
+    .btn.ss { background: var(--substack); border-color: var(--substack); color: #fff; }
+    section { padding: 34px 0; border-top: 1px solid var(--stroke); }
+    h2 { font-size: 28px; margin: 0 0 6px; letter-spacing: -.01em; }
+    .sub { color: var(--soft); margin: 0 0 22px; max-width: 760px; }
+    p { color: var(--soft); }
+    .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+    .card { background: var(--card); border: 1px solid var(--stroke); border-radius: 14px; padding: 18px 20px; }
+    .card h3 { margin: 0 0 6px; font-size: 18px; }
+    .card p { margin: 0; font-size: 15px; }
+    .card ul { margin: 8px 0 0; padding-left: 20px; color: var(--soft); font-size: 15px; }
+    .news { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+    .subscribe { background: var(--card); border: 1px solid var(--substack); border-radius: 14px; padding: 20px; }
+    .subscribe h3 { margin: 0 0 4px; }
+    .subscribe .fine { font-size: 13px; color: var(--faint); margin: 12px 0 0; }
+    .subscribe iframe { width: 100%; height: 320px; border: 1px solid var(--stroke); border-radius: 10px; background: #fff; margin-top: 12px; }
+    .shelf { margin: 0 0 30px; }
+    .shelf h3 { margin: 0; font-size: 19px; }
+    .shelf .note { margin: 2px 0 14px; color: var(--faint); font-size: 15px; }
+    .books { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 18px; }
+    .book { display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: var(--text); background: var(--card);
+      border: 1px solid var(--stroke); border-radius: 12px; padding: 12px; }
+    .book:hover { border-color: var(--accent); }
+    .book img { width: 100%; height: auto; aspect-ratio: 180 / 234; object-fit: cover; border-radius: 6px; background: var(--raised); }
+    .bt { font-weight: 650; font-size: 15px; line-height: 1.3; }
+    .bb { color: var(--faint); font-size: 13.5px; line-height: 1.45; }
+    .soon { display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-soft);
+      border-radius: 5px; padding: 1px 6px; vertical-align: 2px; }
+    footer { border-top: 1px solid var(--stroke); color: var(--faint); font-size: 14px; }
+    footer .wrap { padding: 20px 16px 32px; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+    footer a { color: var(--faint); }
+    @media (max-width: 760px) {
+      .hero { grid-template-columns: 1fr; gap: 20px; padding-top: 28px; }
+      .hero img { width: 140px; height: 140px; }
+      .news { grid-template-columns: 1fr; }
+      nav.links a.hide-sm { display: none; }
+      .books { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top"><div class="bar">
+    <a class="brand" href="../"><span class="mark"><i></i><i></i></span>Self World</a>
+    <nav class="links" aria-label="Site">
+      <a class="hide-sm" href="../play/">Playground</a>
+      <a class="hide-sm" href="../js/">Self → JS</a>
+      <a href="../book/">Book</a>
+      <a href="./" aria-current="page">Author</a>
+    </nav>
+  </div></header>
+
+  <main class="wrap">
+    <div class="hero">
+      <img src="../assets/author/portrait.jpg" alt="Portrait of Volodymyr Pavlyshyn" width="220" height="220">
+      <div>
+        <p class="eyebrow">The author of Self World</p>
+        <h1>Volodymyr Pavlyshyn</h1>
+        <p class="role">Principal engineer and architect in Berlin. Agent memory, knowledge graphs, and identity and trust for AI agents.
+          Twenty-three years in the industry, from COBOL and Smalltalk to Rust.</p>
+        <div class="btns">
+          <a class="btn li" href="https://www.linkedin.com/in/pavlyshyn/">LinkedIn</a>
+          <a class="btn ss" href="#newsletter">Subscribe on Substack</a>
+          <a class="btn" href="https://leanpub.com/u/vpavlyshyn">Books on Leanpub</a>
+          <a class="btn" href="https://pavlyshyn.me">pavlyshyn.me</a>
+        </div>
+      </div>
+    </div>
+
+    <section aria-labelledby="work">
+      <h2 id="work">My work</h2>
+      <p class="sub">I have been a founding engineer twice, and I build tools for modelling knowledge. Self World is a side
+        project in the same spirit: a language where everything is an object you can open and change while it runs.</p>
+      <div class="cols">
+        <div class="card"><h3>Affinidi</h3><p>Founding engineer on self-sovereign identity: DID and Sidetree protocol work, and a
+          verifiable-credentials platform taken from zero to a live airport integration in Singapore in four weeks. I am back at
+          Affinidi now, working on agent identity and trust protocols.</p></div>
+        <div class="card"><h3>Mykin.ai</h3><p>Founding engineer on a privacy-first personal AI: semantic memory for agents that runs
+          on the phone, a personal knowledge graph with vector search and clustering, on-device.</p></div>
+        <div class="card"><h3>Before that</h3><p>Zalando, TomTom and LiveIntent.</p></div>
+        <div class="card"><h3>Tools</h3><p>VS Code extensions built on one conviction: draw the model, ship the text.</p>
+          <ul><li><b>Factum ORM</b>: conceptual schemas in ORM 2, read back as plain sentences</li>
+            <li><b>LPG Modeler</b>: design a property graph once, generate LadybugDB, Neo4j, SHACL and OWL</li>
+            <li><b>Causal Canvas</b>: causal models that warn you when you adjust for a collider</li></ul></div>
+        <div class="card"><h3>Self World</h3><p>The Self language in Rust: an outliner desktop, Morphic interfaces, a translator to
+          JavaScript, and the mini book <a href="../book/"><i>No, I Am Your Father</i></a>.
+          Source on <a href="https://github.com/Volland/self-lang-rs">GitHub</a>.</p></div>
+        <div class="card"><h3>Work with me</h3><p>I take on advisory work: agent memory architecture, agent identity and trust,
+          architecture review and team workshops. Details at <a href="https://pavlyshyn.me/services">pavlyshyn.me/services</a>.</p></div>
+      </div>
+    </section>
+
+    <section id="newsletter" aria-labelledby="news-h">
+      <div class="news">
+        <div>
+          <h2 id="news-h">Sovereign Agentic AI</h2>
+          <p class="sub">A newsletter about how an AI agent remembers, and what it remembers on. Posts tend to be long, specific,
+            and full of things that did not work.</p>
+          <ul style="color:var(--soft)">
+            <li><b>Agentic memory</b>: episodic, semantic and procedural layers, and the pipeline that keeps memory from rotting</li>
+            <li><b>Graph substrates</b>: embedded and columnar graph databases, Semantic Spacetime, metagraphs</li>
+            <li><b>Hybrid Graph RAG</b>: vector search, graph traversal, PageRank and community detection in one query</li>
+            <li><b>Edge and local-first AI</b>: knowledge graphs that ship as a single file and run in-process</li>
+            <li><b>Sovereign agents</b>: DIDs, KERI, verifiable credentials and trust between agents</li>
+          </ul>
+        </div>
+        <div class="subscribe">
+          <h3>Subscribe</h3>
+          <p style="margin:0 0 12px">New posts by email, free. You can unsubscribe at any time.</p>
+          <div class="btns">
+            <a class="btn ss" href="https://volodymyrpavlyshyn.substack.com/subscribe">Subscribe on Substack</a>
+            <button class="btn" id="show-form" type="button">Sign up here</button>
+          </div>
+          <div id="form-slot"></div>
+          <p class="fine">“Sign up here” loads Substack's sign-up form on this page; until you click it, nothing is loaded from
+            Substack. Your email address goes to Substack, Inc. (USA) under
+            <a href="https://substack.com/privacy">their privacy policy</a>. See the <a href="../datenschutz/">Datenschutzerklärung</a>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="books-h">
+      <h2 id="books-h">Books</h2>
+      <p class="sub">19 books on Leanpub, most of them on agent memory and knowledge graphs. Leanpub means variable
+        pricing (you decide what to pay above the minimum), and the books keep updating after you buy them.
+        <a href="https://leanpub.com/u/vpavlyshyn">All books on Leanpub →</a></p>
+      
+      <div class="shelf">
+        <h3>Agent memory</h3>
+        <p class="note">What memory means for an agent, how it changes over time, and the engineering loop that keeps it honest.</p>
+        <div class="books">
+        <a class="book" href="https://leanpub.com/ai-agents-memory">
+          <img src="../assets/author/covers/ai-agents-memory.jpg" alt="Cover of AI Agents Memory Empowered by Knowledge Graphs" loading="lazy" width="180" height="234">
+          <span class="bt">AI Agents Memory Empowered by Knowledge Graphs</span>
+          <span class="bb">The starting point: why retrieval alone is not memory, and how a knowledge graph gives an agent something it can reason over instead of merely search.</span>
+        </a><a class="book" href="https://leanpub.com/beyondcontextgraphs">
+          <img src="../assets/author/covers/beyondcontextgraphs.jpg" alt="Cover of Beyond Context Graphs" loading="lazy" width="180" height="234">
+          <span class="bt">Beyond Context Graphs</span>
+          <span class="bb">Agentic memory as a set of cognitive processes rather than a store — extraction, consolidation, and promise graphs for agents that cooperate without a central authority.</span>
+        </a><a class="book" href="https://leanpub.com/time-aware-ai-memory">
+          <img src="../assets/author/covers/time-aware-ai-memory.jpg" alt="Cover of Temporal Aware AI Memory" loading="lazy" width="180" height="234">
+          <span class="bt">Temporal Aware AI Memory</span>
+          <span class="bb">Time as a first-class dimension in agent memory: bi-temporal facts, decay, recency-aware retrieval, and causal ordering across episodic and semantic stores.</span>
+        </a><a class="book" href="https://leanpub.com/graphengineering">
+          <img src="../assets/author/covers/graphengineering.jpg" alt="Cover of Graph Engineering: The Loop That Remembers" loading="lazy" width="180" height="234">
+          <span class="bt">Graph Engineering: The Loop That Remembers</span>
+          <span class="bb">The engineering loop around a graph that keeps learning: what to extract, what to consolidate, what to forget, and how to keep the whole thing honest over time.</span>
+        </a><a class="book" href="https://leanpub.com/agenticworldmodels">
+          <img src="../assets/author/covers/agenticworldmodels.jpg" alt="Cover of World Models for AI Agents" loading="lazy" width="180" height="234">
+          <span class="bt">World Models for AI Agents</span>
+          <span class="bb">A structured representation of the environment an agent reasons about, and how to build one that supports decisions rather than descriptions.</span>
+        </a>
+        </div>
+      </div>
+      <div class="shelf">
+        <h3>Knowledge modelling</h3>
+        <p class="note">How to shape what an agent knows so it can reason over it, not just retrieve it.</p>
+        <div class="books">
+        <a class="book" href="https://leanpub.com/fact-basedagents">
+          <img src="../assets/author/covers/fact-basedagents.jpg" alt="Cover of Fact-Based Agents" loading="lazy" width="180" height="234">
+          <span class="bt">Fact-Based Agents</span>
+          <span class="bb">Elementary facts as the unit of agent knowledge. Attribute-free modelling that a domain expert can read back as sentences — and an agent can reason over without guessing.</span>
+        </a><a class="book" href="https://leanpub.com/metagraphforaiagents">
+          <img src="../assets/author/covers/metagraphforaiagents.jpg" alt="Cover of Metagraph for AI Agents" loading="lazy" width="180" height="234">
+          <span class="bt">Metagraph for AI Agents</span>
+          <span class="bb">Higher-order structure — edges over edges, hyperedges, reified relations — for agents that must reason about statements, not just facts. Bipartite encodings aligned with HyperGraphRAG.</span>
+        </a><a class="book" href="https://leanpub.com/sst-4-agenticai">
+          <img src="../assets/author/covers/sst-4-agenticai.jpg" alt="Cover of Semantic Space Time for AI Agent Ready Graphs" loading="lazy" width="180" height="234">
+          <span class="bt">Semantic Space Time for AI Agent Ready Graphs</span>
+          <span class="bb">Mark Burgess&#x27;s Semantic Spacetime ontology — NEAR, LEADS-TO, CONTAINS, EXPRESSES — applied to build graphs whose semantics stay consistent under retrieval and reasoning.</span>
+        </a><a class="book" href="https://leanpub.com/bulletproofknowledge">
+          <img src="../assets/author/covers/bulletproofknowledge.jpg" alt="Cover of Bulletproof Knowledge" loading="lazy" width="180" height="234">
+          <span class="bt">Bulletproof Knowledge<span class="soon">in progress</span></span>
+          <span class="bb">Hallucination-resistant neurosymbolic agents in Lean 4 and λProlog. A fact enters memory only with a kernel-checked proof that memory stays consistent, and an answer leaves it only with a proof from what is stored. The LLM proposes; Lean decides.</span>
+        </a><a class="book" href="https://leanpub.com/dependenttypesdttlogicholforaiagentreadyknowledgegraphs">
+          <img src="../assets/author/covers/dependenttypesdttlogicholforaiagentreadyknowledgegraphs.jpg" alt="Cover of Dependent Types &amp; Logic for AI Agent Ready Knowledge Graphs" loading="lazy" width="180" height="234">
+          <span class="bt">Dependent Types &amp; Logic for AI Agent Ready Knowledge Graphs</span>
+          <span class="bb">What dependent type theory and higher-order logic offer a knowledge graph: constraints that hold by construction, and models that cannot express nonsense.</span>
+        </a>
+        </div>
+      </div>
+      <div class="shelf">
+        <h3>Embedded & edge substrates</h3>
+        <p class="note">Hands-on handbooks for the databases memory runs on.</p>
+        <div class="books">
+        <a class="book" href="https://leanpub.com/edgeai-pocket-knowledgegraphs-on-user-device">
+          <img src="../assets/author/covers/edgeai-pocket-knowledgegraphs-on-user-device.jpg" alt="Cover of Edge AI: Pocket Knowledge Graphs on User Device" loading="lazy" width="180" height="234">
+          <span class="bt">Edge AI: Pocket Knowledge Graphs on User Device</span>
+          <span class="bb">A knowledge graph that fits in a pocket. Local-first, privacy-first memory that ships as a file and runs in-process — no server, no network hop, nothing leaving the device.</span>
+        </a><a class="book" href="https://leanpub.com/ladybugdb">
+          <img src="../assets/author/covers/ladybugdb.jpg" alt="Cover of LadybugDB for Edge Agent AI Memory" loading="lazy" width="180" height="234">
+          <span class="bt">LadybugDB for Edge Agent AI Memory</span>
+          <span class="bb">An embedded columnar graph database as the substrate for agent memory: how it stores, how it traverses, and why in-process changes what an agent can afford to ask.</span>
+        </a><a class="book" href="https://leanpub.com/typedbforedgeaiagents">
+          <img src="../assets/author/covers/typedbforedgeaiagents.jpg" alt="Cover of TypeDB for Edge AI Agents" loading="lazy" width="180" height="234">
+          <span class="bt">TypeDB for Edge AI Agents</span>
+          <span class="bb">Strongly-typed knowledge graphs as on-device agent memory: PERA modelling, polymorphic entity-relation-attributes, and SHACL-style validation at the edge.</span>
+        </a><a class="book" href="https://leanpub.com/graphduck">
+          <img src="../assets/author/covers/graphduck.jpg" alt="Cover of GraphDuck: DuckDB for Embedded AI Agents and Graphs" loading="lazy" width="180" height="234">
+          <span class="bt">GraphDuck: DuckDB for Embedded AI Agents and Graphs</span>
+          <span class="bb">Graph workloads on a columnar analytical engine. What DuckDB gives you for free, where it needs help, and how far an embedded analytical store carries agent memory.</span>
+        </a><a class="book" href="https://leanpub.com/cypher103withladybugdb">
+          <img src="../assets/author/covers/cypher103withladybugdb.jpg" alt="Cover of Cypher 103 with LadybugDB" loading="lazy" width="180" height="234">
+          <span class="bt">Cypher 103 with LadybugDB</span>
+          <span class="bb">Cypher past the tutorials — the query patterns that actually come up when a graph is doing an agent’s remembering for it.</span>
+        </a><a class="book" href="https://leanpub.com/rustygraphs-airedy">
+          <img src="../assets/author/covers/rustygraphs-airedy.jpg" alt="Cover of Rusty Graphs — AI Ready Graphs for Rust Developers" loading="lazy" width="180" height="234">
+          <span class="bt">Rusty Graphs — AI Ready Graphs for Rust Developers</span>
+          <span class="bb">Building agent-ready graph infrastructure in Rust: the crates, the trade-offs, and the parts you still have to write yourself.</span>
+        </a>
+        </div>
+      </div>
+      <div class="shelf">
+        <h3>Architecture & practice</h3>
+        <p class="note">How engineering decisions turn into business outcomes: clarity, judgement, and working alongside agents.</p>
+        <div class="books">
+        <a class="book" href="https://leanpub.com/clarityengineer">
+          <img src="../assets/author/covers/clarityengineer.jpg" alt="Cover of Clarity Engineer: Code Is the Side Effect" loading="lazy" width="180" height="234">
+          <span class="bt">Clarity Engineer: Code Is the Side Effect</span>
+          <span class="bb">The argument that an engineer’s real output is clarity, and the code is what falls out of it. What changes when you take that seriously.</span>
+        </a><a class="book" href="https://leanpub.com/clarityforge">
+          <img src="../assets/author/covers/clarityforge.jpg" alt="Cover of Clarity Forge: Local Coding Agent Done Right" loading="lazy" width="180" height="234">
+          <span class="bt">Clarity Forge: Local Coding Agent Done Right</span>
+          <span class="bb">Building a coding agent that runs on your machine and earns its place in the loop — context, memory, and the discipline that keeps it useful past the demo.</span>
+        </a><a class="book" href="https://leanpub.com/philosophical-wednesdays-with-ai-powered-architect">
+          <img src="../assets/author/covers/philosophical-wednesdays-with-ai-powered-architect.jpg" alt="Cover of Philosophical Wednesdays with an AI Powered Architect" loading="lazy" width="180" height="234">
+          <span class="bt">Philosophical Wednesdays with an AI Powered Architect</span>
+          <span class="bb">Weekly arguments with a machine about architecture, meaning, and what we are actually doing. Less a manual than a record of thinking out loud.</span>
+        </a>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="elsewhere">
+      <h2 id="elsewhere">Elsewhere</h2>
+      <div class="btns">
+        <a class="btn li" href="https://www.linkedin.com/in/pavlyshyn/">LinkedIn</a>
+        <a class="btn ss" href="https://volodymyrpavlyshyn.substack.com/">Substack</a>
+        <a class="btn" href="https://github.com/Volland">GitHub</a>
+        <a class="btn" href="https://www.youtube.com/c/VolodymyrPavlyshyn">YouTube</a>
+        <a class="btn" href="https://medium.com/@volodymyrpavlyshyn">Medium</a>
+        <a class="btn" href="https://leanpub.com/u/vpavlyshyn">Leanpub</a>
+        <a class="btn" href="https://pavlyshyn.me">pavlyshyn.me</a>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="wrap">
+    <a href="../">Self World</a>
+    <a href="../impressum/">Impressum</a>
+    <a href="../datenschutz/">Datenschutz</a>
+    <a href="../agb/">AGB</a>
+    <a href="https://github.com/Volland/self-lang-rs">GitHub</a>
+  </div></footer>
+
+  <script>
+    // Substack's form is only loaded when asked for (nothing from Substack before that click).
+    document.getElementById('show-form').addEventListener('click', function () {
+      var f = document.createElement('iframe');
+      f.src = 'https://volodymyrpavlyshyn.substack.com/embed';
+      f.title = 'Subscribe to Sovereign Agentic AI on Substack';
+      f.loading = 'lazy';
+      document.getElementById('form-slot').appendChild(f);
+      this.disabled = true;
+    });
+  </script>
+</body>
+</html>

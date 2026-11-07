@@ -27,8 +27,10 @@ cpSync(join(root, 'web', 'index.html'), join(dist, 'index.html'));
 cpSync(join(root, 'web', 'engine.js'), join(dist, 'engine.js'));
 cpSync(join(root, 'web', 'engine-worker.js'), join(dist, 'engine-worker.js'));
 // each other page gets its own folder, so it has a clean address (try/, play/, book/)
-for (const [page, folder] of [['try.html', 'try'], ['play.html', 'play'], ['book.html', 'book'], ['js.html', 'js']]) {
+for (const [page, folder] of [['try.html', 'try'], ['play.html', 'play'], ['book.html', 'book'], ['js.html', 'js'], ['impressum.html', 'impressum'], ['datenschutz.html', 'datenschutz'], ['agb.html', 'agb'], ['author.html', 'author']]) {
   mkdirSync(join(dist, folder), { recursive: true });
   cpSync(join(root, 'web', page), join(dist, folder, 'index.html'));
 }
+// images used by the pages (author portrait and book covers)
+cpSync(join(root, 'web', 'assets'), join(dist, 'assets'), { recursive: true });
 console.log('Built Self World for the web in dist/');
