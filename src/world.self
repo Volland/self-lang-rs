@@ -1123,6 +1123,12 @@ traits string _AddSlots: (|
       error: 'sendTo:WithArguments: takes at most 3 arguments' ) }.
   { 'Category: evaluating'
     evalIfFail: b = ( [ eval ] onError: [| :m | b value: m ] ) }.
+  { 'Category: translating'
+    "Self source to JavaScript: '3 + 4' asJavaScript. asWebApp makes a whole web page
+     (runtime, starting world and morphs) that runs the program in any browser."
+    asJavaScript = ( _StringAsJavaScript ).
+    asWebApp = ( asWebAppTitled: 'A Self app' ).
+    asWebAppTitled: t = ( _StringAsWebApp: t ) }.
   storeStringIfFail: b = ( printString )
 |).
 

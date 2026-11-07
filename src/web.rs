@@ -164,3 +164,30 @@ pub fn load_self(name: &str, text: &str) -> JsValue {
     LITE.with(|cell| *cell.borrow_mut() = taken);
     o.into()
 }
+
+/// Self source translated to readable JavaScript. Throws a syntax error.
+#[wasm_bindgen]
+pub fn self_to_javascript(src: &str) -> Result<String, JsValue> {
+    crate::jsgen::translate(src).map_err(|e| JsValue::from_str(&e))
+}
+
+/// A whole web page (runtime, starting world, morph renderer and the
+/// program) that runs the Self program in any browser.
+#[wasm_bindgen]
+pub fn self_web_app(src: &str, title: &str) -> Result<String, JsValue> {
+    crate::jsgen::web_app(src, title).map_err(|e| JsValue::from_str(&e))
+}
+
+/// The apps written in Self (examples/), as `[[title, file, code], ...]`.
+#[wasm_bindgen]
+pub fn app_list() -> JsValue {
+    let a = js_sys::Array::new();
+    for (t, _, file, src) in crate::app::APPS {
+        let row = js_sys::Array::new();
+        row.push(&JsValue::from_str(t));
+        row.push(&JsValue::from_str(file));
+        row.push(&JsValue::from_str(src));
+        a.push(&row);
+    }
+    a.into()
+}

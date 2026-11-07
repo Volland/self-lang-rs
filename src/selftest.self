@@ -141,6 +141,7 @@ lobby _AddSlots: (|
         check: 'lines' Gives: 2 By: [ ('a b', '\n', 'c d') lines size ].
         check: 'storeString rebuilds an object' Gives: 7 By: [ ((| parent* = traits clonable. x <- 3. y = 4. sum = ( x + y ) |) storeString eval) sum ].
         check: 'fileOut changes' Gives: true By: [ fileOut changes includesSubstring: 'Objects saved from Self World' ].
+        check: 'translates to JavaScript' Gives: true By: [ '3 + 4' asJavaScript includesSubstring: '$.send(3n, "+", [4n])' ].
 
         "morphs for building apps"
         check: 'list morphs select' Gives: 'b' By: [ | l | l: listMorph copyItems: ('a' & 'b') asVector. l select: 1. l selection ].

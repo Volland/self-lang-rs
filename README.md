@@ -4,8 +4,9 @@
 **Playground: <https://volland.github.io/self-lang-rs/play/>** — a plain editor and transcript for running Self; works without WebGL, can stop runaway programs, and shares code as links.
 **Book: <https://volland.github.io/self-lang-rs/book/>** — *No, I Am Your Father*, a mini book about Self, Smalltalk, prototypes, fast VMs and JavaScript, with runnable code.
 **Desktop: <https://volland.github.io/self-lang-rs/try/>** — the full Self World desktop, the same Rust program compiled to WebAssembly.
+**Self → JavaScript: <https://volland.github.io/self-lang-rs/js/>** — write Self, see it translated to JavaScript as you type, run it, and download it as a web app.
 
-The web pages live in `web/`: `index.html` (home and tour), `play.html`, `book.html` and `try.html` (desktop).
+The web pages live in `web/`: `index.html` (home and tour), `play.html`, `book.html`, `js.html` (Self → JavaScript) and `try.html` (desktop).
 `engine.js` loads the Self engine for the playground and the book, running it in a Web Worker
 (`engine-worker.js`) so a program that never ends can be stopped. `npm run build` puts the site in `dist/`.
 
@@ -77,6 +78,10 @@ self-world -e '100 factorial'        # evaluate one expression
 self-world my-program.self           # load and run files (add --repl to keep going)
 self-world --open my-program.self    # open the desktop with files loaded
 self-world --test                    # run the self-test (written in Self)
+self-world --app examples/todo.self  # run a Self program's morphs as an app
+self-world --js app.self             # print the program translated to JavaScript
+self-world --js app.self --standalone > app.js   # runtime + world + program, for node
+self-world --web-app app.self -o app.html        # one HTML file that runs it in any browser
 ```
 
 ## Writing and loading Self files
@@ -141,13 +146,38 @@ Load that file into any world to get them back. From code: `fileOut changes`,
 Self programs can read and write files too: `'notes.txt' asFileContents` and
 `'notes.txt' setFileContentsTo: 'hello'`.
 
+## Self to JavaScript
+
+Self World translates Self to JavaScript (`src/jsgen.rs`). Object literals become `$.obj([...])`
+with the same slots, methods become functions, every message becomes
+`$.send(receiver, "selector", [arguments])` looked up through parent slots at run time, locals
+and arguments become JavaScript variables, blocks become closures, and `^` inside a block returns
+from its method. Integers are BigInts, so they grow as in Self. The runtime (`src/js/runtime.js`)
+implements the object model and the primitives; the starting world (`world.self`,
+`morphic.self`) is translated by the same compiler, so a translated program has the whole
+library. The self-test passes when translated, except the few checks that need the Self compiler
+at run time (`eval`, `storeString`, `fileOut`, bootstrap paths).
+
+A **web app** is one HTML file: the runtime, the translated world and program, and a renderer that
+draws morphs with the browser's own buttons, fields, lists and canvases (`src/js/morphic.js`).
+In a web app, `asFileContents` and `setFileContentsTo:` use the browser's local storage, so the
+to-do example keeps its tasks.
+
+| Where | How |
+|---|---|
+| Website | <https://volland.github.io/self-lang-rs/js/>: live translation, **Run**, **Download web app** |
+| Desktop | **World ▸ Export a Self file as a web app…** or **Translate a Self file to JavaScript…** |
+| In Self | `'3 + 4' asJavaScript`, `aString asWebAppTitled: 'My app'` |
+| Command line | `self-world --js`, `--js … --standalone`, `--web-app` |
+
 ## Testing
 
-`selfTest run` (also **World ▸ Run the self-test**, or `self-world --test`) runs 75 checks
+`selfTest run` (also **World ▸ Run the self-test**, or `self-world --test`) runs 86 checks
 written in Self, from arithmetic and big integers to inheritance, resends, closures,
 non-local returns, collections, protocol carried over from the original core world and the
 original file format. `cargo test` runs the same
-self-test plus engine tests in Rust.
+self-test plus engine tests in Rust, and (when Node is installed) the self-test translated to
+JavaScript.
 
 In the browser, if WebGL isn't available the page falls back to a text shell on the same engine.
 

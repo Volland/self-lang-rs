@@ -211,6 +211,10 @@ enum Action {
     PickApp,
     /// Save the objects added since start-up as a Self file.
     SaveObjects,
+    /// Translate a Self file to JavaScript: a whole web app, or just the program
+    /// (desktop only; the website has its own page for this).
+    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
+    ExportJs { web_app: bool },
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -716,6 +720,53 @@ impl SelfWorldApp {
         }
     }
 
+    /// World ▸ Export a Self file as a web app… / Translate a Self file to JavaScript…
+    fn export_js(&mut self, web_app: bool) {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let Some(path) = rfd::FileDialog::new().set_title("Choose a Self file to translate").add_filter("Self source", &["self"]).pick_file() else {
+                return;
+            };
+            let src = match std::fs::read_to_string(&path) {
+                Ok(s) => s,
+                Err(e) => {
+                    self.status = format!("couldn't read {}: {e}", path.display());
+                    return;
+                }
+            };
+            let stem = path.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| "app".into());
+            let (result, ext) = if web_app {
+                (crate::jsgen::web_app(&src, &stem), "html")
+            } else {
+                (crate::jsgen::translate(&src), "js")
+            };
+            let text = match result {
+                Ok(t) => t,
+                Err(e) => {
+                    self.status = e.clone();
+                    self.transcript.push_str(&format!("⚠ {e}\n"));
+                    return;
+                }
+            };
+            let Some(out) = rfd::FileDialog::new()
+                .set_title(if web_app { "Save the web app" } else { "Save the JavaScript" })
+                .set_file_name(format!("{stem}.{ext}"))
+                .save_file()
+            else {
+                return;
+            };
+            self.status = match std::fs::write(&out, text) {
+                Ok(()) if web_app => format!("saved {}: open it in any web browser", out.display()),
+                Ok(()) => format!("saved {}", out.display()),
+                Err(e) => format!("couldn't save {}: {e}", out.display()),
+            };
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            let _ = web_app;
+        }
+    }
+
     /// World ▸ Save my objects as a Self file…
     fn save_objects(&mut self) {
         let text = self.vm.file_out_changes();
@@ -792,6 +843,20 @@ impl SelfWorldApp {
                             self.actions.push(Action::SaveObjects);
                             ui.close_menu();
                         }
+                        ui.separator();
+                        #[cfg(not(target_arch = "wasm32"))]
+                        {
+                            if ui.button("Export a Self file as a web app…").on_hover_text("Translate a .self file to JavaScript and save one HTML file that runs it, morphs and all, in any browser").clicked() {
+                                self.actions.push(Action::ExportJs { web_app: true });
+                                ui.close_menu();
+                            }
+                            if ui.button("Translate a Self file to JavaScript…").on_hover_text("Save the program as a .js file for the Self World runtime").clicked() {
+                                self.actions.push(Action::ExportJs { web_app: false });
+                                ui.close_menu();
+                            }
+                        }
+                        #[cfg(target_arch = "wasm32")]
+                        ui.hyperlink_to("Self → JavaScript (web apps)…", "../js/");
                         if ui.button("Run the self-test").on_hover_text("Check that the language and world work").clicked() {
                             self.actions.push(Action::RunInShell("selfTest run".into()));
                             ui.close_menu();
@@ -1656,6 +1721,9 @@ impl SelfWorldApp {
             try_it(ui, "| w | w: windowMorph copyTitle: 'Pick one'. w addMorph: ((listMorph copyItems: ('red' & 'green' & 'blue') asVector) onSelect: [| :c | c printLine ]). w openInWorld", &mut acts);
             section(ui, "Apps written in Self");
             ui.label("A .self file that builds morphs is an app. World ▸ Run a Self file as an app… (or self-world --app file.self) shows only the world and its morphs; set world title: to name the window. The examples folder has a to-do list, a game and a sketch pad.");
+            section(ui, "Self to JavaScript");
+            ui.label("Any Self program can be translated to JavaScript and saved as a web app: one HTML file with the Self runtime, the starting world and the program, which runs (morphs included) in any browser. World ▸ Export a Self file as a web app…, self-world --web-app file.self, or from code:");
+            try_it(ui, "'3 + 4 * 2' asJavaScript", &mut acts);
             section(ui, "Saving your objects");
             ui.label("World ▸ Save my objects as a Self file… writes everything you added to the lobby, globals and traits as Self source; load the file again in any world. From code: fileOut changes, fileOut object: x, or x storeString.");
             try_it(ui, "fileOut changes", &mut acts);
@@ -1710,6 +1778,7 @@ impl SelfWorldApp {
                     self.pick_file();
                 }
                 Action::SaveObjects => self.save_objects(),
+                Action::ExportJs { web_app } => self.export_js(web_app),
                 Action::RunInShell(code) => {
                     let id = self.shell_id();
                     let (get_it, code) = match code.strip_prefix('\u{1}') {

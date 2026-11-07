@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Self to JavaScript</title>
+  <meta name="description" content="Write Self, see it translated to JavaScript as you type, run it, and export it as a web app: one HTML file that runs in any browser.">
+  <meta property="og:title" content="Self to JavaScript">
+  <meta property="og:description" content="Translate Self, the prototype language behind JavaScript's objects, to JavaScript and export it as a web app.">
+  <meta name="theme-color" content="#0e1016">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='12' y='2' width='18' height='18' rx='5' fill='%238b7bff' fill-opacity='.55'/%3E%3Crect x='2' y='12' width='18' height='18' rx='5' fill='%238b7bff'/%3E%3C/svg%3E" type="image/svg+xml">
+  <style>
+    :root {
+      --bg: #0e1016; --panel: #13161e; --card: #171b24; --raised: #20252f; --stroke: #2c3240; --well: #0b0d12;
+      --text: #e6e9f0; --soft: #c2c7d4; --faint: #8a93a6; --accent: #8b7bff; --accent-soft: #2a264d;
+      --ok: #5ed6a0; --err: #ff6b6b; --js: #f7df1e;
+      --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      --sans: -apple-system, "Segoe UI", system-ui, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); }
+    body { font: 15px/1.5 var(--sans); min-height: 100vh; display: flex; flex-direction: column; }
+    a { color: var(--accent); }
+    code { font-family: var(--mono); font-size: .92em; }
+    header.top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--panel) 92%, transparent);
+      backdrop-filter: blur(8px); border-bottom: 1px solid var(--stroke); }
+    header.top .bar { display: flex; align-items: center; gap: 18px; height: 52px; padding: 0 16px; max-width: 1480px; margin: 0 auto; }
+    .brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 16.5px; white-space: nowrap; }
+    .brand span.sub { color: var(--faint); font-weight: 500; }
+    .mark { position: relative; width: 22px; height: 22px; flex: none; }
+    .mark i { position: absolute; width: 14px; height: 14px; border-radius: 4px; }
+    .mark i:first-child { left: 8px; top: 0; background: #8b7bff8c; }
+    .mark i:last-child { left: 0; top: 8px; background: var(--accent); }
+    nav.links { display: flex; gap: 16px; margin-left: auto; font-size: 14px; align-items: center; }
+    nav.links a { color: var(--faint); text-decoration: none; white-space: nowrap; }
+    nav.links a:hover, nav.links a[aria-current] { color: var(--text); }
+    nav.links a.desk { border: 1px solid var(--stroke); border-radius: 8px; padding: 4px 12px; color: var(--text); }
+    nav.links a.desk:hover { border-color: var(--accent); }
+
+    .intro { max-width: 1480px; width: 100%; margin: 0 auto; padding: 18px 16px 0; }
+    .intro h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -.01em; }
+    .intro p { margin: 0; color: var(--soft); max-width: 900px; }
+    main { flex: 1; display: grid; grid-template-columns: 220px minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 16px;
+      max-width: 1480px; width: 100%; margin: 0 auto; }
+    .panel { background: var(--card); border: 1px solid var(--stroke); border-radius: 12px; min-width: 0; display: flex; flex-direction: column; }
+    .panel h2 { font-size: 12.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--faint); margin: 0; padding: 12px 14px 8px; }
+    #examples { align-self: start; position: sticky; top: 68px; max-height: calc(100vh - 84px); overflow: auto; }
+    #examples h3 { font-size: 12px; color: var(--accent); margin: 12px 14px 4px; font-weight: 700; }
+    #examples button { display: block; width: 100%; text-align: left; background: none; border: 0; color: var(--soft);
+      font: 14px var(--sans); padding: 6px 14px; cursor: pointer; border-radius: 6px; }
+    #examples button:hover { background: var(--raised); color: var(--text); }
+    #examples button[aria-pressed=true] { color: var(--text); background: var(--accent-soft); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--stroke); }
+    .toolbar h2 { padding: 0; margin-right: 4px; }
+    .grow { flex: 1; }
+    button.b { background: var(--raised); color: var(--text); border: 1px solid var(--stroke); border-radius: 8px; padding: 6px 12px;
+      font: 14px var(--sans); cursor: pointer; white-space: nowrap; }
+    button.b:hover { border-color: var(--accent); }
+    button.b:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    button.b.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    button.b:disabled { opacity: .5; cursor: default; }
+    .tag { font: 600 11px var(--mono); padding: 2px 7px; border-radius: 5px; }
+    .tag.self { background: var(--accent-soft); color: var(--accent); }
+    .tag.js { background: #3a3510; color: var(--js); }
+    textarea#code, pre#js { flex: 1; margin: 0; width: 100%; min-height: 460px; background: var(--well); color: var(--text); border: 0;
+      font: 13.5px/1.55 var(--mono); padding: 14px; white-space: pre; overflow: auto; tab-size: 2; resize: none; border-radius: 0 0 12px 12px; }
+    textarea#code { caret-color: var(--accent); outline: none; }
+    textarea#code:focus-visible { box-shadow: inset 0 0 0 2px var(--accent-soft); }
+    pre#js .k { color: #c792ea; } pre#js .s { color: #c3e88d; } pre#js .n { color: #f78c6c; } pre#js .c { color: var(--faint); font-style: italic; }
+    pre#js .f { color: #82aaff; }
+    .status { font-size: 13px; color: var(--faint); display: flex; align-items: center; gap: 6px; }
+    .status.err { color: var(--err); }
+    .status.ok { color: var(--ok); }
+    #run-panel { grid-column: 2 / 4; }
+    #run-panel[hidden] { display: none; }
+    iframe#app { width: 100%; height: 560px; border: 0; border-radius: 0 0 12px 12px; background: #0e1016; }
+    .how { grid-column: 1 / 4; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .how div { background: var(--card); border: 1px solid var(--stroke); border-radius: 12px; padding: 14px 16px; color: var(--soft); font-size: 14px; }
+    .how b { color: var(--text); display: block; margin-bottom: 4px; }
+    .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--raised); border: 1px solid var(--accent);
+      padding: 8px 14px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+    @media (max-width: 1100px) {
+      main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+      #examples { grid-column: 1 / 3; position: static; max-height: none; }
+      #examples .list { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 8px 10px; }
+      #examples h3 { width: 100%; margin: 6px 6px 0; }
+      #examples button { width: auto; border: 1px solid var(--stroke); }
+      #run-panel { grid-column: 1 / 3; }
+      .how { grid-column: 1 / 3; }
+    }
+    @media (max-width: 720px) {
+      nav.links a.hide-sm, .brand span.sub { display: none; }
+      nav.links { gap: 10px; font-size: 13.5px; }
+      header.top .bar { gap: 10px; padding: 0 12px; }
+      main { grid-template-columns: minmax(0, 1fr); padding: 12px; gap: 12px; }
+      #examples, #run-panel, .how { grid-column: 1; }
+      .intro { padding: 14px 12px 0; }
+      textarea#code, pre#js { min-height: 300px; font-size: 12.5px; }
+      iframe#app { height: 70vh; }
+    }
+    @media (max-width: 400px) { nav.links a.hide-xs { display: none; } }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="bar">
+      <a class="brand" href="../"><span class="mark"><i></i><i></i></span>Self World <span class="sub">/ Self → JavaScript</span></a>
+      <nav class="links" aria-label="Site">
+        <a class="hide-sm" href="../#tour">Tour</a>
+        <a class="hide-xs" href="../play/">Playground</a>
+        <a href="./" aria-current="page">Self → JS</a>
+        <a class="hide-sm" href="../book/">Book</a>
+        <a class="desk" href="../try/" title="The full outliner desktop with Morphic windows">Desktop ▶</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="intro">
+    <h1>Write Self, get JavaScript</h1>
+    <p>Self's objects, slots and prototypes are where JavaScript's came from, so Self translates to JavaScript naturally.
+      Type Self on the left and the translation updates as you type. <b>Run</b> it, or <b>download it as a web app</b>: one HTML file,
+      with the Self runtime and its whole starting world, that runs in any browser with no server and no install.</p>
+  </section>
+
+  <main>
+    <nav class="panel" id="examples" aria-label="Examples">
+      <h2>Examples</h2>
+      <div class="list" id="example-list"><div class="status">Loading…</div></div>
+    </nav>
+
+    <section class="panel" aria-label="Self code">
+      <div class="toolbar">
+        <span class="tag self">SELF</span>
+        <button class="b primary" id="run" disabled title="Run it as a web app below (Ctrl/⌘ + Enter)">Run ▶</button>
+        <button class="b" id="export" disabled title="Download a web app: one HTML file that runs this program in any browser">Download web app</button>
+        <span class="grow"></span>
+        <button class="b" id="share" title="Copy a link that opens this code">Share link</button>
+      </div>
+      <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Self code"></textarea>
+    </section>
+
+    <section class="panel" aria-label="JavaScript translation">
+      <div class="toolbar">
+        <span class="tag js">JAVASCRIPT</span>
+        <span class="status" id="status" role="status">Loading the translator…</span>
+        <span class="grow"></span>
+        <button class="b" id="copy" disabled>Copy</button>
+        <button class="b" id="savejs" disabled title="Download the translated program as a .js file">.js</button>
+      </div>
+      <pre id="js" tabindex="0" aria-label="JavaScript"></pre>
+    </section>
+
+    <section class="panel" id="run-panel" hidden aria-label="Running web app">
+      <div class="toolbar">
+        <h2>Running as a web app</h2>
+        <span class="status" id="run-status"></span>
+        <span class="grow"></span>
+        <button class="b" id="open-tab" title="Open the web app in a new tab">Open in a new tab</button>
+        <button class="b" id="close-run">Close</button>
+      </div>
+      <iframe id="app" title="The program running as a web app" sandbox="allow-scripts allow-modals allow-downloads"></iframe>
+    </section>
+
+    <div class="how">
+      <div><b>Objects stay objects</b> An object literal becomes <code>$.obj([...])</code> with the same slots; a method becomes a JavaScript function; a message becomes <code>$.send(receiver, "selector", [arguments])</code>, looked up through parent slots at run time just like Self.</div>
+      <div><b>Blocks are closures</b> Locals and arguments become JavaScript variables, blocks become arrow functions, and <code>^</code> inside a block returns from its method. Integers are BigInts, so <code>100 factorial</code> is exact.</div>
+      <div><b>The whole world comes along</b> The starting world (numbers, strings, collections, morphs…) is itself written in Self and translated the same way. A web app's morphs are drawn with the browser's own buttons, fields and canvases.</div>
+      <div><b>Also on the desktop</b> In Self World: <code>'3 + 4' asJavaScript</code>, <code>'…' asWebAppTitled: 'My app'</code>, <b>World ▸ Export a Self file as a web app…</b>, or <code>self-world --web-app app.self</code>.</div>
+    </div>
+  </main>
+  <div class="toast" id="toast"></div>
+
+  <script type="module">
+    const base = new URL('../', location.href).href;
+    const $ = (id) => document.getElementById(id);
+    const code = $('code'), out = $('js'), status = $('status');
+    let engine = null, lastJs = '', title = 'A Self app', timer = null;
+
+    const toast = (msg) => { const t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1800); };
+    const download = (name, text, type) => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type }));
+      a.download = name;
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    };
+    const slug = (t) => (t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'self-app');
+
+    // a little syntax colouring for the JavaScript
+    const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    function colour(js) {
+      return esc(js).replace(/(\/\/[^\n]*)|("(?:[^"\\]|\\.)*")|\b(const|let|return|function|try|catch|finally|throw|if|new)\b|\b(\d+n?)\b|(\$\.\w+)/g,
+        (m, c, s, k, n, f) => c ? `<span class="c">${c}</span>` : s ? `<span class="s">${s}</span>` : k ? `<span class="k">${k}</span>` : n ? `<span class="n">${n}</span>` : `<span class="f">${f}</span>`);
+    }
+
+    function translate() {
+      if (!engine) return;
+      try {
+        lastJs = engine.self_to_javascript(code.value);
+        out.innerHTML = colour(lastJs);
+        status.textContent = 'Translated ✓'; status.className = 'status ok';
+      } catch (e) {
+        status.textContent = String(e); status.className = 'status err';
+      }
+    }
+    code.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(translate, 180); });
+    code.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(); }
+      if (e.key === 'Tab' && !e.shiftKey) {
+        e.preventDefault();
+        const s = code.selectionStart;
+        code.setRangeText('  ', s, code.selectionEnd, 'end');
+        code.dispatchEvent(new Event('input'));
+      }
+    });
+
+    function webApp() {
+      try { return engine.self_web_app(code.value, title); }
+      catch (e) { status.textContent = String(e); status.className = 'status err'; return null; }
+    }
+    function run() {
+      const html = webApp();
+      if (!html) return;
+      $('run-panel').hidden = false;
+      $('app').srcdoc = html;
+      $('run-status').textContent = title;
+      $('run-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    $('run').onclick = run;
+    $('export').onclick = () => { const h = webApp(); if (h) { download(slug(title) + '.html', h, 'text/html'); toast('Saved ' + slug(title) + '.html: open it in any browser'); } };
+    $('copy').onclick = async () => { try { await navigator.clipboard.writeText(lastJs); toast('JavaScript copied'); } catch (e) { toast('Copy failed'); } };
+    $('savejs').onclick = () => download(slug(title) + '.js', lastJs, 'text/javascript');
+    $('close-run').onclick = () => { $('run-panel').hidden = true; $('app').srcdoc = ''; };
+    $('open-tab').onclick = () => { const h = webApp(); if (h) window.open(URL.createObjectURL(new Blob([h], { type: 'text/html' })), '_blank'); };
+    $('share').onclick = async () => {
+      const bytes = new TextEncoder().encode(code.value);
+      let bin = ''; bytes.forEach((b) => (bin += String.fromCharCode(b)));
+      const url = location.origin + location.pathname + '#code=' + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch (e) { history.replaceState(null, '', url); toast('Link is in the address bar'); }
+    };
+
+    const SNIPPETS = [
+      ['Hello', "'Hello from Self, now in JavaScript!' printLine.\n(3 + 4) printLine.\n100 factorial printLine"],
+      ['Objects and prototypes', "lobby _AddSlots: (|\n  animal = (| parent* = traits clonable.\n             name <- 'animal'.\n             speak = ( name, ' makes a sound' ) |).\n  dog = (| parent* = animal.\n          speak = ( resend.speak, ': woof!' ) |)\n|).\ndog name: 'Rex'.\ndog speak printLine.\n(dog copy name: 'Bella') speak printLine"],
+      ['Blocks and collections', "| squares |\nsquares: (1 to: 10 Collect: [| :i | i * i ]).\nsquares printLine.\n(squares select: [| :x | x even ]) printLine.\n(squares inject: 0 Into: [| :a. :b | a + b ]) printLine.\n((squares collect: [| :x | x printString ]) joinUsing: ' · ') printLine"],
+      ['A counter window', "| w. count. label |\ncount: 0.\nworld title: 'Counter'.\nlabel: labelMorph copyText: 'Count: 0'.\nlabel fontSize: 24.\nw: windowMorph copyTitle: 'Counter'.\nw addMorph: label.\nw addMorph: (buttonMorph copyLabel: 'Add one' Action: [\n  count: count + 1.\n  label text: 'Count: ', count printString ]).\nw addMorph: (buttonMorph copyLabel: 'Reset' Action: [\n  count: 0.\n  label text: 'Count: 0' ]).\nw openInWorld"],
+    ];
+
+    function setCode(text, t) {
+      code.value = text;
+      title = t || 'A Self app';
+      translate();
+    }
+    function examples(apps) {
+      const list = $('example-list');
+      list.innerHTML = '';
+      const group = (name, items) => {
+        const h = document.createElement('h3'); h.textContent = name; list.appendChild(h);
+        for (const [t, src] of items) {
+          const b = document.createElement('button');
+          b.textContent = t;
+          b.onclick = () => {
+            list.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', 'false'));
+            b.setAttribute('aria-pressed', 'true');
+            setCode(src, t);
+          };
+          list.appendChild(b);
+        }
+      };
+      group('Start here', SNIPPETS);
+      group('Apps written in Self', apps.map(([t, , src]) => [t, src]));
+    }
+
+    try {
+      const m = await import(base + 'selfworld.js');
+      await m.default({ module_or_path: base + 'selfworld_bg.wasm' });
+      engine = m;
+      const apps = Array.from(m.app_list());
+      examples(apps);
+      const fromHash = location.hash.startsWith('#code=') ? location.hash.slice(6) : null;
+      if (fromHash) {
+        const bin = atob(fromHash.replace(/-/g, '+').replace(/_/g, '/'));
+        setCode(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))), 'A Self app');
+      } else {
+        setCode(SNIPPETS[3][1], SNIPPETS[3][0]);
+      }
+      for (const id of ['run', 'export', 'copy', 'savejs']) $(id).disabled = false;
+    } catch (e) {
+      status.textContent = 'The translator could not load: ' + e; status.className = 'status err';
+    }
+  </script>
+</body>
+</html>

@@ -81,6 +81,46 @@ mod cli {
             println!("self-world --test     run the built-in self-test");
             println!("self-world --open FILE.self   open the desktop with files loaded");
             println!("self-world --app FILE.self    run files that build morphs as an app (world only)");
+            println!("self-world --js FILE.self     print the program translated to JavaScript");
+            println!("self-world --js FILE.self --standalone   ... with the runtime and world, ready for node");
+            println!("self-world --web-app FILE.self [-o OUT.html] [--title TITLE]");
+            println!("                      export the program as a web app (one HTML file, no server needed)");
+            return true;
+        }
+        if args[0] == "--js" || args[0] == "--web-app" {
+            let Some(path) = args.get(1) else {
+                eprintln!("{} needs a .self file", args[0]);
+                std::process::exit(2);
+            };
+            let src = std::fs::read_to_string(path).unwrap_or_else(|e| {
+                eprintln!("cannot read {path}: {e}");
+                std::process::exit(2);
+            });
+            let flag = |f: &str| args.iter().position(|a| a == f).and_then(|i| args.get(i + 1)).cloned();
+            let result = if args[0] == "--js" && args.iter().any(|a| a == "--standalone") {
+                selfworld::jsgen::script(&src, &[])
+            } else if args[0] == "--js" {
+                selfworld::jsgen::translate(&src)
+            } else {
+                let stem = std::path::Path::new(path).file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+                let title = flag("--title").unwrap_or(stem);
+                selfworld::jsgen::web_app(&src, &title)
+            };
+            match result {
+                Ok(text) if args[0] == "--js" => print!("{text}"),
+                Ok(html) => {
+                    let out = flag("-o").unwrap_or_else(|| std::path::Path::new(path).with_extension("html").to_string_lossy().to_string());
+                    if let Err(e) = std::fs::write(&out, html) {
+                        eprintln!("cannot write {out}: {e}");
+                        std::process::exit(2);
+                    }
+                    println!("wrote {out}: open it in any web browser");
+                }
+                Err(e) => {
+                    eprintln!("{e}");
+                    std::process::exit(1);
+                }
+            }
             return true;
         }
         if args[0] == "--test" {

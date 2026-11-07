@@ -3,6 +3,7 @@
 
 pub mod app;
 pub mod fileout;
+pub mod jsgen;
 pub mod lexer;
 pub mod morphic;
 pub mod parser;

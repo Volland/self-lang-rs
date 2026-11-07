@@ -143,7 +143,7 @@ fn every_menu_example_runs() {
 #[test]
 fn the_self_test_written_in_self_passes() {
     let mut vm = Vm::new();
-    assert_eq!(vm.run_self_test().unwrap(), "All 85 checks passed");
+    assert_eq!(vm.run_self_test().unwrap(), "All 86 checks passed");
 }
 
 #[test]
@@ -256,4 +256,47 @@ fn saved_objects_load_into_a_fresh_world() {
     assert!(rep.failures.is_empty(), "{:?}\n{saved}", rep.failures);
     assert_eq!(eval(&mut fresh, "pet greet"), "'hi from Rex'");
     assert_eq!(eval(&mut fresh, "7 triple"), "21");
+}
+
+/// The self-test, translated with the whole starting world to JavaScript and
+/// run by Node (skipped when Node isn't installed). Only checks that need the
+/// Self compiler or VM reflection at run time may fail.
+#[test]
+fn the_self_test_passes_when_translated_to_javascript() {
+    let Ok(out) = std::process::Command::new("node").arg("--version").output() else {
+        eprintln!("node not found: skipping");
+        return;
+    };
+    if !out.status.success() {
+        return;
+    }
+    let script = selfworld::jsgen::script("selfTest run printLine", &[selfworld::world::SELFTEST_SOURCE]).unwrap();
+    let path = std::env::temp_dir().join(format!("selfworld-selftest-{}.js", std::process::id()));
+    std::fs::write(&path, script).unwrap();
+    let out = std::process::Command::new("node").arg(&path).output().unwrap();
+    let _ = std::fs::remove_file(&path);
+    let text = String::from_utf8_lossy(&out.stdout).to_string();
+    let allowed = ["storeString rebuilds an object", "fileOut changes", "bootstrap paths", "eval:", "translates to JavaScript"];
+    for line in text.lines().filter(|l| l.contains("FAILED")) {
+        assert!(allowed.iter().any(|a| line.contains(a)), "unexpected failure in JavaScript: {line}\n{text}");
+    }
+    assert!(text.contains(" passed, "), "no summary from the JavaScript self-test:\n{text}\n{}", String::from_utf8_lossy(&out.stderr));
+}
+
+#[test]
+fn the_built_in_apps_translate_to_web_apps() {
+    for (title, _, file, src) in selfworld::app::APPS {
+        let html = selfworld::jsgen::web_app(src, title).unwrap_or_else(|e| panic!("{file}: {e}"));
+        assert!(html.starts_with("<!doctype html>") && html.contains("SelfMorphic.start()"), "{file}");
+        assert!(!html.contains("</script>\n</script>"), "{file}");
+    }
+}
+
+#[test]
+fn js_print_script_for_debugging() {
+    // writes target/selftest.js when SELF_WORLD_JS_OUT is set (used while developing the translator)
+    if let Ok(path) = std::env::var("SELF_WORLD_JS_OUT") {
+        let s = selfworld::jsgen::script("selfTest run printLine", &[selfworld::world::SELFTEST_SOURCE]).unwrap();
+        std::fs::write(path, s).unwrap();
+    }
 }

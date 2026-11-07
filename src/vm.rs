@@ -2077,6 +2077,18 @@ impl Vm {
                     _ => self.nil(),
                 })
             }
+            "_StringAsJavaScript" => {
+                let s = self.str_arg(recv)?;
+                let js = crate::jsgen::translate(&s).map_err(|e| PrimErr::Unwind(Unwind::Error(SelfError { msg: e, trace: vec![] })))?;
+                Ok(self.new_string(&js))
+            }
+            "_StringAsWebApp:" => {
+                need(1)?;
+                let s = self.str_arg(recv)?;
+                let title = self.str_arg(a[0])?;
+                let html = crate::jsgen::web_app(&s, &title).map_err(|e| PrimErr::Unwind(Unwind::Error(SelfError { msg: e, trace: vec![] })))?;
+                Ok(self.new_string(&html))
+            }
             "_FileOut" => {
                 let s = self.file_out_object(recv);
                 Ok(self.new_string(&s))
