@@ -1,6 +1,6 @@
 [package]
 name = "self-world"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "A Self language environment written in Rust, with a modern outliner desktop"
 license = "BSD-3-Clause"
@@ -46,7 +46,8 @@ rfd = "0.15"
 [package.metadata.deb]
 name = "self-world"
 maintainer = "Volodymyr Pavlyshyn"
-copyright = "Self World authors; the Self language (c) 1992-2016 Self authors"
+copyright = "2026 Volodymyr Pavlyshyn (BSD-3-Clause); portions adapted from Self, 2009-2026 the Self AUTHORS and 1993-2006 Sun Microsystems, Inc. and Stanford University (see NOTICE)"
+license-file = ["LICENSE", "0"]
 section = "devel"
 priority = "optional"
 extended-description = """\
@@ -59,5 +60,7 @@ assets = [
   ["assets/icons/icon-256.png", "usr/share/icons/hicolor/256x256/apps/self-world.png", "644"],
   ["assets/icons/icon-512.png", "usr/share/icons/hicolor/512x512/apps/self-world.png", "644"],
   ["README.md", "usr/share/doc/self-world/README.md", "644"],
+  ["NOTICE", "usr/share/doc/self-world/NOTICE", "644"],
+  ["THIRD_PARTY_LICENSES.md", "usr/share/doc/self-world/THIRD_PARTY_LICENSES.md", "644"],
   ["examples/*.self", "usr/share/self-world/examples/", "644"],
 ]

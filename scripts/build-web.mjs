@@ -27,7 +27,7 @@ cpSync(join(root, 'web', 'index.html'), join(dist, 'index.html'));
 cpSync(join(root, 'web', 'engine.js'), join(dist, 'engine.js'));
 cpSync(join(root, 'web', 'engine-worker.js'), join(dist, 'engine-worker.js'));
 // each other page gets its own folder, so it has a clean address (try/, play/, book/)
-for (const [page, folder] of [['try.html', 'try'], ['play.html', 'play'], ['book.html', 'book'], ['js.html', 'js'], ['impressum.html', 'impressum'], ['datenschutz.html', 'datenschutz'], ['agb.html', 'agb'], ['author.html', 'author']]) {
+for (const [page, folder] of [['try.html', 'try'], ['play.html', 'play'], ['book.html', 'book'], ['js.html', 'js'], ['impressum.html', 'impressum'], ['datenschutz.html', 'datenschutz'], ['agb.html', 'agb'], ['author.html', 'author'], ['licenses.html', 'licenses']]) {
   mkdirSync(join(dist, folder), { recursive: true });
   cpSync(join(root, 'web', page), join(dist, folder, 'index.html'));
 }

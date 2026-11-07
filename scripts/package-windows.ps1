@@ -24,6 +24,8 @@ New-Item -ItemType Directory -Path $stage | Out-Null
 Copy-Item $exe (Join-Path $stage 'self-world.exe')
 Copy-Item README.md $stage
 Copy-Item LICENSE (Join-Path $stage 'LICENSE.txt')
+Copy-Item NOTICE (Join-Path $stage 'NOTICE.txt')
+Copy-Item THIRD_PARTY_LICENSES.md $stage
 # small apps written in Self:  self-world.exe --app examples\todo.self
 if (Test-Path examples) { Copy-Item -Recurse examples (Join-Path $stage 'examples') }
 $zip = Join-Path $dist 'SelfWorld-Windows.zip'

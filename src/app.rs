@@ -1748,6 +1748,9 @@ impl SelfWorldApp {
         ui.add_space(6.0);
         ui.label(RichText::new("Self was created by David Ungar and Randall B. Smith. This is an independent re-implementation; it follows the Self Language Reference but uses its own small starting world rather than the original world files.").color(p.faint));
         ui.add_space(6.0);
+        ui.label(RichText::new("Copyright (c) 2026 Volodymyr Pavlyshyn. Free software under the BSD 3-Clause License. Some methods of the starting world are adapted from the original Self system (Copyright 2009-2026 the Self AUTHORS; Self 4.3 Copyright 1993-2006 Sun Microsystems, Inc. and Stanford University), under its licence. The program also contains third-party libraries and fonts under permissive licences. The full notices are in the files LICENSE, NOTICE and THIRD_PARTY_LICENSES.md next to the program, and online:").small().color(p.faint));
+        ui.hyperlink_to("self-world.app/licenses", "https://self-world.app/licenses/");
+        ui.add_space(6.0);
         ui.label(RichText::new(format!("{} objects in this world", self.vm.object_count())).small().color(p.faint));
     }
 

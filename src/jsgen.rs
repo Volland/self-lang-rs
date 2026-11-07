@@ -22,6 +22,18 @@ use std::rc::Rc;
 pub const RUNTIME_JS: &str = include_str!("js/runtime.js");
 /// Draws morphs with the browser's DOM, for exported web apps.
 pub const MORPHIC_JS: &str = include_str!("js/morphic.js");
+/// Self World's licence and the notices of the original Self system (parts of
+/// the translated world are adapted from it); every exported program carries them.
+pub const LICENSE_TEXT: &str = include_str!("../LICENSE");
+pub const NOTICE_TEXT: &str = include_str!("../NOTICE");
+
+fn licence_comment() -> String {
+    format!(
+        "/*\nThis program was made with Self World (https://self-world.app). It contains the Self World\nruntime and starting world, which come with the following licence and notices.\nThird-party licences of Self World: https://self-world.app/licenses/\n\n{}\n\n{}\n*/\n",
+        LICENSE_TEXT.trim(),
+        NOTICE_TEXT.trim()
+    )
+}
 
 #[derive(Clone)]
 struct Local {
@@ -375,7 +387,8 @@ pub fn script(src: &str, extra_world: &[&str]) -> Result<String, String> {
         extra.push_str(&format!("({c})(SelfRT, SelfRT.lobby);\n"));
     }
     Ok(format!(
-        "{RUNTIME_JS}\nSelfRT.onPrint = (s) => {{ if (typeof process !== 'undefined') process.stdout.write(s); else console.log(s); }};\n{}{extra}SelfRT.failures.length = 0;\nconst __last = ({prog})(SelfRT, SelfRT.lobby);\n",
+        "{}{RUNTIME_JS}\nSelfRT.onPrint = (s) => {{ if (typeof process !== 'undefined') process.stdout.write(s); else console.log(s); }};\n{}{extra}SelfRT.failures.length = 0;\nconst __last = ({prog})(SelfRT, SelfRT.lobby);\n",
+        licence_comment(),
         world_js()?
     ))
 }
@@ -399,7 +412,7 @@ pub fn web_app(src: &str, title: &str) -> Result<String, String> {
 <body>
 <div id="self-app"></div>
 <script>
-{RUNTIME_JS}
+{licence}{RUNTIME_JS}
 </script>
 <script>
 {MORPHIC_JS}
@@ -414,6 +427,7 @@ SelfMorphic.start();
 </html>
 "#,
         title = esc(t),
+        licence = licence_comment(),
         jt = js_str(t),
     ))
 }

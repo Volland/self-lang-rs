@@ -34,6 +34,8 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/self-world"
 cp assets/icons/SelfWorld.icns "$APP/Contents/Resources/SelfWorld.icns"
+# the licence and notices travel with the program
+cp LICENSE NOTICE THIRD_PARTY_LICENSES.md "$APP/Contents/Resources/"
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -64,6 +66,8 @@ rm -rf "$STAGE" "$DMG"
 mkdir -p "$STAGE"
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
+mkdir -p "$STAGE/Licences"
+cp LICENSE NOTICE THIRD_PARTY_LICENSES.md "$STAGE/Licences/"
 # small apps written in Self, next to the app:
 #   "/Applications/Self World.app/Contents/MacOS/self-world" --app Examples/todo.self
 [ -d examples ] && cp -R examples "$STAGE/Examples"

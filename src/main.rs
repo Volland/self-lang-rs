@@ -83,8 +83,14 @@ mod cli {
             println!("self-world --app FILE.self    run files that build morphs as an app (world only)");
             println!("self-world --js FILE.self     print the program translated to JavaScript");
             println!("self-world --js FILE.self --standalone   ... with the runtime and world, ready for node");
+            println!("self-world --licenses   show the licence and notices (third-party licences: THIRD_PARTY_LICENSES.md)");
             println!("self-world --web-app FILE.self [-o OUT.html] [--title TITLE]");
             println!("                      export the program as a web app (one HTML file, no server needed)");
+            return true;
+        }
+        if args[0] == "--licenses" || args[0] == "--license" {
+            println!("{}\n\n{}", selfworld::jsgen::LICENSE_TEXT, selfworld::jsgen::NOTICE_TEXT);
+            println!("Third-party software: see THIRD_PARTY_LICENSES.md next to the program, or https://self-world.app/licenses/");
             return true;
         }
         if args[0] == "--js" || args[0] == "--web-app" {

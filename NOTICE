@@ -1,0 +1,95 @@
+Self World
+Copyright (c) 2026, Volodymyr Pavlyshyn
+Licensed under the BSD 3-Clause License (see LICENSE).
+
+Self World is an independent implementation of the Self programming language,
+written from scratch in Rust. It contains no source files of the original Self
+system. Some methods of its starting world (src/world.self, the section
+"protocol from the original core world", and therefore also the JavaScript
+translation of that world inside web apps that Self World exports) are adapted
+from the source of the original Self system, objects/core in
+https://github.com/russellallen/self. For those parts the original notices
+apply; they are reproduced here unchanged, as the original licence requires.
+
+Third-party software in the builds of Self World is listed, with the full
+licence texts, in THIRD_PARTY_LICENSES.md (also at https://self-world.app/licenses/).
+
+======================================================================
+The Self system: legal/LICENSE
+======================================================================
+
+Copyright 2009-2026 AUTHORS
+
+WORK:
+
+The WORK comprises the software, documentation and related materials.
+
+LICENSE:
+
+You may use the WORK internally, modify it, make copies and distribute the WORK to third parties, provided each copy of the WORK you make contains both the copyright notice set forth above and the disclaimer below.
+
+DISCLAIMER:
+
+The AUTHORS make no representations about the suitability of the WORK for any purpose. It is provided to you "AS IS", without express or implied warranties of any kind. The AUTHORS disclaim all implied warranties of merchantability, fitness for a particular purpose and non-infringement of third party rights. The AUTHORS' liability for claims relating to the WORK shall be limited to the amount, if any of the fees paid by you for the WORK.  In no event will the AUTHORS be liable for any special, indirect, incidental, consequential or punitive damages in connection with or arising out of this license (including loss of profits, use, data, or other economic advantage), however it arises, whether for breach of warranty or in tort, even if the AUTHORS have been advised of the possibility of such damage.
+
+INCLUDED WORK:
+
+The WORK is based on the Self 4.3 release, Copyright 1993-2006 Sun Microsystems, Inc. and Stanford University. See the 43LICENCE
+
+----------------------------------------------------------------------
+The Self system: legal/AUTHORS
+----------------------------------------------------------------------
+
+(In alphabetical order by surname)
+
+Russell Allen
+Jan-Paul Bultmann
+Chris Double
+Lee Duhem
+Tobias Pape
+Randall B. Smith
+Adam Spitz
+Stanford University
+Sun Microsystems, Inc.  
+David Ungar
+Valery Ushakov
+Xin Wang
+
+======================================================================
+The Self 4.3 release: legal/43LICENSE
+======================================================================
+
+# Sun-$Revision: 30.5 $
+
+Copyright  1993-2006 Sun Microsystems, Inc. and Stanford University.
+
+All Rights Reserved. RESTRICTED RIGHTS LEGEND: Use, duplication, or
+disclosure by the government is subject to restrictions as set forth in
+subparagraph (c) (1) (ii) of the Rights in Technical Data and Computer
+Software Clause at DFARS 252.227-7013 (Oct. 1988) and FAR 52.227-19(c)
+(June 1987).
+
+Sun Microsystems, Inc.  2600 Casey Avenue, Mountain View, CA 94043 USA
+
+
+LICENSE:
+
+You may use the software internally, modify it, make copies and distribute 
+the software to third parties, provided each copy of the software you make 
+contains both the copyright notice set forth above and the disclaimer below.
+
+DISCLAIMER:
+
+Sun Microsystems, Inc. makes no representations about the suitability
+of this software for any purpose. It is provided to you "AS IS",
+without express or implied warranties of any kind. Sun Microsystems,
+Inc. disclaims all implied warranties of merchantability, fitness for a
+particular purpose and non-infringement of third party rights. Sun
+Microsystems, Inc.'s liability for claims relating to the software
+shall be limited to the amount, if any of the fees paid by you for the
+software.  In no event will Sun Microsystems, Inc. be liable for any
+special, indirect, incidental, consequential or punitive damages in
+connection with or arising out of this license (including loss of
+profits, use, data, or other economic advantage), however it arises,
+whether for breach of warranty or in tort, even if Sun Microsystems,
+Inc. has been advised of the possibility of such damage.

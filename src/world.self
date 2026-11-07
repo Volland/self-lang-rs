@@ -550,6 +550,12 @@ lobby _AddSlots: (|
 
 "---------------------------------------------------------------- protocol from the original core world
 
+ Several methods in this section are adapted from the original Self system
+ (objects/core in https://github.com/russellallen/self), Copyright 2009-2026
+ the Self AUTHORS, based on Self 4.3, Copyright 1993-2006 Sun Microsystems, Inc.
+ and Stanford University. They are used under the Self licence; its copyright
+ notices and disclaimer are reproduced in the file NOTICE.
+
  The messages below come from the original Self core files (objects/core in
  the Self distribution: defaultBehavior, number, integer, float, collection,
  indexable, list, dictionary, setAndDictionary, string, block, point and

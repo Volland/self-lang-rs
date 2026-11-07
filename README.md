@@ -211,5 +211,20 @@ than the original UI2 library. Integers divide with `/` like the original (`7 / 
 
 ## Licence
 
-BSD 3-Clause (see `LICENSE`). Self itself was created by David Ungar and Randall B. Smith; this
-is an independent re-implementation and contains none of the original Self virtual machine code.
+Self World is free software under the **BSD 3-Clause License** (`LICENSE`).
+
+- **The original Self system.** Self was created by David Ungar and Randall B. Smith. Self World is
+  an independent re-implementation written from scratch in Rust and contains no source files of
+  the original system. Some methods of its starting world (the "protocol from the original core
+  world" section of `src/world.self`) are adapted from the original Self source, so its copyright
+  notices and disclaimer (the Self AUTHORS, 2009-2026, and the Self 4.3 release, Sun Microsystems,
+  Inc. and Stanford University, 1993-2006) are reproduced in `NOTICE`, as its licence requires.
+- **Third-party software.** Every crate compiled into the macOS, Linux, Windows and web builds, and
+  the fonts built into the program, are under permissive licences (MIT, Apache-2.0, BSD, Zlib, ISC,
+  Unicode-3.0, BSL-1.0, CC0, SIL OFL, Ubuntu Font Licence); none is copyleft. Their full texts are in
+  `THIRD_PARTY_LICENSES.md`, generated from `Cargo.lock` by `scripts/third-party-licenses.py`
+  (CI checks it is up to date). Every download includes `LICENSE`, `NOTICE` and
+  `THIRD_PARTY_LICENSES.md`, `self-world --licenses` prints the notices, and the website has them at
+  <https://self-world.app/licenses/>.
+- **Exported web apps** contain the Self World runtime and the translated starting world, so they
+  carry `LICENSE` and `NOTICE` in a comment at the top of their script.
