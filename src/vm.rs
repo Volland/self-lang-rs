@@ -225,6 +225,10 @@ pub struct Vm {
     /// `traits bootstrapPath`, remembered so original files that rebuild
     /// `traits` don't break the loader.
     bootstrap_traits: Option<ObjId>,
+    /// The slots of the lobby, globals, traits, defaultBehavior and their
+    /// children right after start-up, so the objects a person adds or changes
+    /// can be saved as a Self file (see fileout.rs).
+    pub initial_slots: Vec<(ObjId, Vec<(Rc<str>, Value)>)>,
 }
 
 pub fn now_ms() -> f64 {
@@ -270,8 +274,10 @@ impl Vm {
             source_dir: None,
             load_nesting: 0,
             bootstrap_traits: None,
+            initial_slots: vec![],
         };
         vm.bootstrap();
+        vm.initial_slots = vm.snapshot_slots();
         vm
     }
 
@@ -1868,8 +1874,14 @@ impl Vm {
                 need(1)?;
                 let s = self.str_arg(recv)?;
                 let sep = self.str_arg(a[0])?;
-                let parts: Vec<String> = if sep.trim().is_empty() {
+                // ' ' splits on runs of white space (for `words`), '\n' on line
+                // breaks (also \r\n); anything else exactly
+                let parts: Vec<String> = if &*sep == " " {
                     s.split_whitespace().map(|x| x.to_string()).collect()
+                } else if &*sep == "\n" {
+                    s.split('\n').map(|x| x.strip_suffix('\r').unwrap_or(x).to_string()).collect()
+                } else if sep.is_empty() {
+                    s.chars().map(|c| c.to_string()).collect()
                 } else {
                     s.split(&*sep).map(|x| x.to_string()).collect()
                 };
@@ -2034,6 +2046,45 @@ impl Vm {
                     Err(u) => Err(PrimErr::Unwind(u)),
                 }
             }
+            "_OnReturn:" | "_OnNonLocalReturn:" => {
+                // unwind protection, as in the original: run the receiver block, then the
+                // argument block (always for _OnReturn:, only when a non-local return or an
+                // error leaves the receiver for _OnNonLocalReturn:)
+                need(1)?;
+                let b = recv.id().ok_or_else(|| Fail("badTypeError".into()))?;
+                let saved = self.depth;
+                let r = self.call_block(b, vec![]);
+                self.depth = saved;
+                let always = sel == "_OnReturn:";
+                if always || r.is_err() {
+                    let arg = match &r {
+                        Ok(v) => *v,
+                        Err(_) => self.nil(),
+                    };
+                    self.call_block_lenient(a[0], vec![arg]).map_err(PrimErr::Unwind)?;
+                }
+                r.map_err(PrimErr::Unwind)
+            }
+            "_FileContents" | "_SetFileContents:" | "_FileExists" => self.file_prim(recv, sel, a),
+            "_SourceFolder" => {
+                // the folder of the file being loaded (nil in the browser or for typed code)
+                #[cfg(not(target_arch = "wasm32"))]
+                let dir = self.source_dir.as_ref().map(|d| std::fs::canonicalize(d).unwrap_or(d.clone()).to_string_lossy().to_string());
+                #[cfg(target_arch = "wasm32")]
+                let dir = self.source_dir.as_ref().map(|d| d.to_string_lossy().to_string());
+                Ok(match dir {
+                    Some(d) if !d.is_empty() => self.new_string(&d),
+                    _ => self.nil(),
+                })
+            }
+            "_FileOut" => {
+                let s = self.file_out_object(recv);
+                Ok(self.new_string(&s))
+            }
+            "_FileOutChanges" => {
+                let s = self.file_out_changes();
+                Ok(self.new_string(&s))
+            }
             _ => Err(PrimErr::Unwind(Unwind::Error(SelfError {
                 msg: format!("unknown primitive {sel}"),
                 trace: vec![],
@@ -2168,6 +2219,51 @@ impl Vm {
         };
         let _ = r.is_negative();
         Ok(self.norm_big(r))
+    }
+
+    /// Files, for Self programs on the desktop: `'notes.txt' asFileContents`,
+    /// `'notes.txt' setFileContentsTo: 'hi'`, `'notes.txt' fileExists`.
+    /// Relative names are looked up next to the file being loaded first.
+    fn file_prim(&mut self, recv: Value, sel: &str, a: &[Value]) -> Result<Value, PrimErr> {
+        use PrimErr::Fail;
+        let name = self.str_arg(recv)?;
+        #[cfg(target_arch = "wasm32")]
+        {
+            let _ = (name, a);
+            if sel == "_FileExists" {
+                return Ok(self.boolean(false));
+            }
+            Err(Fail("filesAreNotAvailableInTheBrowser".into()))
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let mut path = std::path::PathBuf::from(&*name);
+            if path.is_relative() {
+                if let Some(dir) = &self.source_dir {
+                    let near = dir.join(&path);
+                    if near.exists() || sel == "_SetFileContents:" {
+                        path = near;
+                    }
+                }
+            }
+            match sel {
+                "_FileExists" => Ok(self.boolean(path.exists())),
+                "_FileContents" => match std::fs::read_to_string(&path) {
+                    Ok(t) => Ok(self.new_string(&t)),
+                    Err(e) => Err(Fail(format!("cannot read {}: {e}", path.display()))),
+                },
+                _ => {
+                    if a.len() != 1 {
+                        return Err(Fail("wrongNumberOfArgumentsError".into()));
+                    }
+                    let text = self.str_arg(a[0])?;
+                    match std::fs::write(&path, text.as_bytes()) {
+                        Ok(()) => Ok(recv),
+                        Err(e) => Err(Fail(format!("cannot write {}: {e}", path.display()))),
+                    }
+                }
+            }
+        }
     }
 
     fn str_arg(&self, v: Value) -> Result<Rc<str>, PrimErr> {

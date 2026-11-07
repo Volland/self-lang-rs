@@ -143,7 +143,7 @@ fn every_menu_example_runs() {
 #[test]
 fn the_self_test_written_in_self_passes() {
     let mut vm = Vm::new();
-    assert_eq!(vm.run_self_test().unwrap(), "All 52 checks passed");
+    assert_eq!(vm.run_self_test().unwrap(), "All 85 checks passed");
 }
 
 #[test]
@@ -232,4 +232,28 @@ fn morphs_are_live_objects() {
     let r = eval(&mut vm, "| b | b: circleMorph copy. b _AddSlots: (| step = ( x: x + 5 ) |). b openInWorld. b startStepping. b step. b step. b x");
     assert_eq!(r, "50");
     assert_eq!(eval(&mut vm, "world clear. world morphs size"), "0");
+}
+
+#[test]
+fn the_built_in_apps_load_and_build_their_morphs() {
+    for (title, _, file, src) in selfworld::app::APPS {
+        let mut vm = Vm::new();
+        let rep = vm.load_source(src).unwrap_or_else(|e| panic!("{file}: {}", e.msg));
+        assert!(rep.failures.is_empty(), "app '{title}' ({file}) failed: {:?}", rep.failures);
+        let r = eval(&mut vm, "world morphs size");
+        assert_ne!(r, "0", "app '{title}' put no morphs in the world");
+    }
+}
+
+#[test]
+fn saved_objects_load_into_a_fresh_world() {
+    let mut vm = Vm::new();
+    eval(&mut vm, "lobby _AddSlots: (| pet = (| parent* = traits clonable. name <- 'Rex'. greet = ( 'hi from ', name ) |) |)");
+    eval(&mut vm, "traits integer _AddSlots: (| triple = ( self * 3 ) |)");
+    let saved = vm.file_out_changes();
+    let mut fresh = Vm::new();
+    let rep = fresh.load_source(&saved).unwrap();
+    assert!(rep.failures.is_empty(), "{:?}\n{saved}", rep.failures);
+    assert_eq!(eval(&mut fresh, "pet greet"), "'hi from Rex'");
+    assert_eq!(eval(&mut fresh, "7 triple"), "21");
 }

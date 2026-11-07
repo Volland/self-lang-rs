@@ -16,6 +16,7 @@ globals _AddSlots: (|
              color <- 'accent'.
              owner <- nil.
              isStepping <- false.
+             wantsKeys <- false.
              submorphs <- list copyRemoveAll |)
 |).
 
@@ -51,8 +52,18 @@ traits morph _AddSlots: (|
     startStepping = ( isStepping: true. self ).
     stopStepping = ( isStepping: false. self ) }.
   { 'Category: events'
+    "Override these to react. Keys arrive only while wantsKeys is true; key names
+     are like 'A', 'Space', 'Enter', 'ArrowLeft'."
     click = ( self ).
+    clickAt: p = ( click ).
+    clickAtX: px Y: py = ( clickAt: px @ py ).
+    keyDown: key = ( self ).
+    keyUp: key = ( self ).
     changed = ( self ) }.
+  { 'Category: testing'
+    isMorph = true.
+    bounds = ( (x @ y) ## (width @ height) ).
+    containsPoint: p = ( bounds includes: p ) }.
   printString = ( 'a ', morphKind, ' morph' )
 |).
 
@@ -67,7 +78,43 @@ traits _AddSlots: (|
   rowMorph = (| parent* = traits morph. morphKind = 'row' |).
   columnMorph = (| parent* = traits morph. morphKind = 'column' |).
   canvasMorph = (| parent* = traits morph. morphKind = 'canvas' |).
-  windowMorph = (| parent* = traits morph. morphKind = 'window' |)
+  windowMorph = (| parent* = traits morph. morphKind = 'window' |).
+  textAreaMorph = (| parent* = traits morph. morphKind = 'textArea' |).
+  listMorph = (| parent* = traits morph. morphKind = 'list' |).
+  dropDownMorph = (| parent* = traits morph. morphKind = 'dropDown' |).
+  progressMorph = (| parent* = traits morph. morphKind = 'progress' |).
+  lineMorph = (| parent* = traits morph. morphKind = 'line' |).
+  separatorMorph = (| parent* = traits morph. morphKind = 'separator' |)
+|).
+
+traits textAreaMorph _AddSlots: (|
+  {} = 'Text over several lines. onChange is called with the new contents and the morph.'.
+  copyContents: s = ( copy contents: s ).
+  changed = ( onChange isNil ifFalse: [ onChange value: contents With: self ]. self )
+|).
+
+traits listMorph _AddSlots: (|
+  {} = 'A list to pick from. items holds any objects (strings show as they are); onSelect gets the selection and the morph.'.
+  copyItems: v = ( (copy items: v asVector) selectedIndex: -1 ).
+  selection = ( ((selectedIndex >= 0) && [ selectedIndex < items size ]) ifTrue: [ items at: selectedIndex ] False: [ nil ] ).
+  select: i = ( selectedIndex: i. changed ).
+  changed = ( onSelect isNil ifFalse: [ onSelect value: selection With: self ]. self )
+|).
+
+traits dropDownMorph _AddSlots: (|
+  {} = 'A drop-down menu of choices. onChange gets the chosen item and the morph.'.
+  copyChoices: v = ( | c | c: copy choices: v asVector. v isEmpty ifFalse: [ c selected: c choices first ]. c ).
+  changed = ( onChange isNil ifFalse: [ onChange value: selected With: self ]. self )
+|).
+
+traits progressMorph _AddSlots: (|
+  {} = 'A progress bar showing value out of max.'.
+  copyMax: m = ( (copy max: m) value: 0 )
+|).
+
+traits lineMorph _AddSlots: (|
+  {} = 'A straight line from its position to position + extent (which may be negative).'.
+  copyFrom: p To: q = ( | l | l: copy. l position: p. l extent: q - p. l )
 |).
 
 traits labelMorph _AddSlots: (|
@@ -121,7 +168,13 @@ globals _AddSlots: (|
   rowMorph = morph copy _AddSlots: (| parent* = traits rowMorph |).
   columnMorph = morph copy _AddSlots: (| parent* = traits columnMorph |).
   canvasMorph = morph copy _AddSlots: (| parent* = traits canvasMorph |).
-  windowMorph = morph copy _AddSlots: (| parent* = traits windowMorph. title <- 'Window' |) }
+  windowMorph = morph copy _AddSlots: (| parent* = traits windowMorph. title <- 'Window' |).
+  textAreaMorph = morph copy _AddSlots: (| parent* = traits textAreaMorph. contents <- ''. onChange <- nil |).
+  listMorph = morph copy _AddSlots: (| parent* = traits listMorph. items <- vector copySize: 0. selectedIndex <- -1. onSelect <- nil |).
+  dropDownMorph = morph copy _AddSlots: (| parent* = traits dropDownMorph. choices <- vector copySize: 0. selected <- nil. onChange <- nil |).
+  progressMorph = morph copy _AddSlots: (| parent* = traits progressMorph. value <- 0. max <- 100 |).
+  lineMorph = morph copy _AddSlots: (| parent* = traits lineMorph. lineWidth <- 3 |).
+  separatorMorph = morph copy _AddSlots: (| parent* = traits separatorMorph |) }
 |).
 
 circleMorph extent: 60 @ 60.
@@ -132,6 +185,11 @@ canvasMorph extent: 320 @ 200.
 canvasMorph color: 'background'.
 windowMorph extent: 280 @ 160.
 windowMorph position: 140 @ 120.
+textAreaMorph extent: 260 @ 120.
+listMorph extent: 220 @ 140.
+progressMorph width: 200.
+lineMorph extent: 100 @ 0.
+lineMorph color: 'text'.
 
 globals _AddSlots: (|
   world = (|
@@ -142,7 +200,10 @@ globals _AddSlots: (|
     color <- 'none'.
     owner <- nil.
     isStepping <- false.
+    wantsKeys <- false.
     submorphs <- list copyRemoveAll.
+    "Set title to name the desktop window, e.g. when a Self file runs as an app."
+    title <- nil.
     isWorld = true.
     delete = ( self ).
     clear = ( submorphs do: [| :m | m owner: nil ]. submorphs: list copyRemoveAll. self ).

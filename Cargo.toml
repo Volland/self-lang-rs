@@ -1,9 +1,12 @@
 [package]
 name = "self-world"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "A Self language environment written in Rust, with a modern outliner desktop"
 license = "BSD-3-Clause"
+authors = ["Volodymyr Pavlyshyn"]
+homepage = "https://volland.github.io/self-lang-rs/"
+repository = "https://github.com/Volland/self-lang-rs"
 
 [lib]
 name = "selfworld"
@@ -38,3 +41,23 @@ opt-level = 1
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 stacker = "0.1"
 rfd = "0.15"
+
+# Linux .deb package, built by scripts/package-linux.sh with cargo-deb
+[package.metadata.deb]
+name = "self-world"
+maintainer = "Volodymyr Pavlyshyn"
+copyright = "Self World authors; the Self language (c) 1992-2016 Self authors"
+section = "devel"
+priority = "optional"
+extended-description = """\
+The Self programming language re-implemented in Rust, with a modern take on \
+Self's outliner desktop and Morphic interfaces made of Self objects."""
+depends = "libc6, libgl1, libxkbcommon0"
+assets = [
+  ["target/release/self-world", "usr/bin/", "755"],
+  ["assets/linux/self-world.desktop", "usr/share/applications/", "644"],
+  ["assets/icons/icon-256.png", "usr/share/icons/hicolor/256x256/apps/self-world.png", "644"],
+  ["assets/icons/icon-512.png", "usr/share/icons/hicolor/512x512/apps/self-world.png", "644"],
+  ["README.md", "usr/share/doc/self-world/README.md", "644"],
+  ["examples/*.self", "usr/share/self-world/examples/", "644"],
+]

@@ -23,14 +23,29 @@ macOS, Linux and Windows.
   `_Clone`, … with `IfFail:` variants), integers that grow into big integers, a lookup cache
   and a garbage collector.
 - **A starting world written in Self** (`src/world.self`): the lobby, `defaultBehavior`,
-  `traits` for numbers, booleans, strings, blocks, vectors, lists, dictionaries, points and
-  mirrors, plus examples such as `bankAccount`.
+  `traits` for numbers, booleans, strings, blocks, vectors, lists, dictionaries, sets, points,
+  rectangles and mirrors, plus examples such as `bankAccount`. Much of the everyday protocol
+  of the original core files is carried over under its original names: `doFirst:Middle:Last:IfEmpty:`,
+  `ifNone:IfOne:IfMany:`, `reduceWith:`, `findFirst:IfPresent:IfAbsent:`, `copyFilteredBy:`,
+  `union:`/`intersect:`, `/+ /- /~ /=`, `compare:IfLess:Equal:Greater:`, `printStringPrecision:`,
+  `matchesPattern:`, `sendTo:With:`, `loopExit`, `untilTrue:`, `point # point` and more.
 - **The desktop** (`src/app.rs`, built with egui): outliners on any object, with slots grouped
   by category, click-to-open values joined by arrows, method editors (edit and *Accept*),
   slot editing and adding, an evaluator per object, shells with history, a transcript, a slot
   finder, a language guide and an examples menu; dark and light themes.
 
-## Run it
+## Download
+
+Ready-made installers for the latest release (all releases: <https://github.com/Volland/self-lang-rs/releases>):
+
+| System | Download | Notes |
+|---|---|---|
+| macOS 11+ (Apple silicon and Intel) | [SelfWorld-macOS.dmg](https://github.com/Volland/self-lang-rs/releases/latest/download/SelfWorld-macOS.dmg) | Not signed by Apple yet: the first time, right-click the app and choose **Open** (or `xattr -dr com.apple.quarantine "/Applications/Self World.app"`) |
+| Windows 10/11, 64-bit | [SelfWorld-Windows-Setup.exe](https://github.com/Volland/self-lang-rs/releases/latest/download/SelfWorld-Windows-Setup.exe) · [portable .zip](https://github.com/Volland/self-lang-rs/releases/latest/download/SelfWorld-Windows.zip) | SmartScreen may warn about an unknown publisher: **More info → Run anyway** |
+| Linux x86-64 | [AppImage](https://github.com/Volland/self-lang-rs/releases/latest/download/SelfWorld-Linux-x86_64.AppImage) · [.deb](https://github.com/Volland/self-lang-rs/releases/latest/download/SelfWorld-Linux-amd64.deb) · [.tar.gz](https://github.com/Volland/self-lang-rs/releases/latest/download/SelfWorld-Linux-x86_64.tar.gz) | AppImage: `chmod +x` it and run; .deb: `sudo apt install ./SelfWorld-Linux-amd64.deb` |
+| Browser | <https://volland.github.io/self-lang-rs/try/> | nothing to install |
+
+## Run it from source
 
 | Where | How |
 |---|---|
@@ -41,8 +56,18 @@ macOS, Linux and Windows.
 
 All of them need Rust from <https://rustup.rs>. The web build also needs
 `rustup target add wasm32-unknown-unknown` and `cargo install wasm-bindgen-cli --version 0.2.128`.
-`scripts/package-mac.sh` makes a double-clickable `Self World.app`.
-`.github/workflows/build.yml` builds every platform automatically once the folder is pushed to GitHub.
+`.github/workflows/build.yml` builds and tests every platform on each push.
+
+The installers are made by scripts you can also run yourself; each writes to `target/dist/`:
+
+| Script | Makes |
+|---|---|
+| `scripts/package-mac.sh` (`--native` for this Mac only) | `Self World.app` and `SelfWorld-macOS.dmg` (universal) |
+| `scripts/package-windows.ps1` | `SelfWorld-Windows-Setup.exe` (Inno Setup) and `SelfWorld-Windows.zip` |
+| `scripts/package-linux.sh` | `.AppImage`, `.deb` (cargo-deb) and `.tar.gz` |
+
+Pushing a version tag (`git tag v0.2.0 && git push origin v0.2.0`) runs
+`.github/workflows/release.yml`, which builds all of them and publishes a GitHub Release.
 
 Text mode works everywhere too:
 
@@ -97,11 +122,31 @@ to clicks; right-click any morph to inspect, duplicate, stop or delete it. The *
 has a counter, bouncing balls, a temperature converter, a drawing canvas and a morph that
 changes itself. (The browser's text-only fallback can build morphs but can't show them.)
 
+## Apps and objects written in Self
+
+**Apps.** A `.self` file that builds morphs is an app. Run it with only the world on screen
+(no outliners) using `self-world --app examples/todo.self`, or **World ▸ Run a Self file as an
+app…** on the desktop and in the browser. `world title: 'My app'` names the window, and
+**Self World tools** brings the programming tools back. Morphs to build with: windows, rows and
+columns, labels, buttons, text fields and text areas, lists, drop-downs, sliders, checkboxes,
+progress bars, lines, canvases, rectangles and circles. Morphs react to `click`, `clickAt:`,
+`keyDown:`/`keyUp:` (set `wantsKeys: true`) and `step` (after `startStepping`). The
+[`examples/`](examples) folder has a to-do list (`todo.self`), a game (`catch.self`) and a
+sketch pad (`sketch.self`). The installers include the examples.
+
+**Saving objects.** **World ▸ Save my objects as a Self file…** writes everything you added to
+the lobby, globals and traits (new objects, slots and edited methods) as ordinary Self source.
+Load that file into any world to get them back. From code: `fileOut changes`,
+`fileOut changesTo: 'my-objects.self'`, `fileOut object: x` or `x storeString`. On the desktop,
+Self programs can read and write files too: `'notes.txt' asFileContents` and
+`'notes.txt' setFileContentsTo: 'hello'`.
+
 ## Testing
 
-`selfTest run` (also **World ▸ Run the self-test**, or `self-world --test`) runs 52 checks
+`selfTest run` (also **World ▸ Run the self-test**, or `self-world --test`) runs 75 checks
 written in Self, from arithmetic and big integers to inheritance, resends, closures,
-non-local returns, collections and the original file format. `cargo test` runs the same
+non-local returns, collections, protocol carried over from the original core world and the
+original file format. `cargo test` runs the same
 self-test plus engine tests in Rust.
 
 In the browser, if WebGL isn't available the page falls back to a text shell on the same engine.

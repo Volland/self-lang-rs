@@ -139,6 +139,21 @@
     footer { border-top: 1px solid var(--stroke); color: var(--faint); font-size: 14px; padding: 26px 0 40px; }
     footer .wrap { display: flex; gap: 16px; flex-wrap: wrap; justify-content: space-between; }
 
+    /* downloads */
+    .downloads .card { display: flex; flex-direction: column; gap: 12px; position: relative; }
+    .downloads .card.mine { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+    .downloads .card .yours { display: none; position: absolute; top: 14px; right: 14px; font-size: 12px; font-weight: 700;
+      color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 2px 10px; }
+    .downloads .card.mine .yours { display: inline-block; }
+    .downloads .card h3 { margin: 0; }
+    .downloads .meta { color: var(--faint); font-size: 13.5px; margin: -6px 0 0; }
+    .downloads .files { display: flex; flex-direction: column; gap: 8px; }
+    .downloads .files .btn { justify-content: space-between; width: 100%; }
+    .downloads .files .btn small { color: inherit; opacity: .75; font-weight: 500; font-size: 12.5px; }
+    .downloads .note { color: var(--faint); font-size: 13.5px; margin: 0; }
+    .downloads .note code { font-size: 12px; overflow-wrap: anywhere; color: #c9cedb; }
+    .downloads .more { margin: 22px 0 0; color: #c9cedb; font-size: 15px; }
+
     @media (max-width: 900px) {
       .hero-grid, .step, .compare { grid-template-columns: minmax(0, 1fr); }
       .bubbles { height: 260px; }
@@ -162,6 +177,7 @@
         <a href="#history">History</a>
         <a href="#tree">Family tree</a>
         <a href="#javascript">JavaScript</a>
+        <a href="#download">Download</a>
         <a href="book/">Book</a>
         <a href="try/">Desktop</a>
         <a class="btn primary" href="play/">Try it ▶</a>
@@ -448,11 +464,56 @@ Object.setPrototypeOf(rex, animal); // same trick</code></pre></div>
       </div>
     </section>
 
+    <section id="download" class="downloads">
+      <div class="wrap">
+        <div class="kicker">Download</div>
+        <h2>Self World on your desktop</h2>
+        <p class="sub">The same program as the in-browser desktop, as a native app for macOS, Windows and Linux: outliners, shells, Morphic windows and loading <code>.self</code> files from your disk. Free and open source.</p>
+        <div class="cards">
+          <div class="card" data-os="mac">
+            <span class="yours">Your system</span>
+            <div class="emoji">🍎</div>
+            <h3>macOS</h3>
+            <p class="meta">macOS 11 or later · Apple silicon and Intel</p>
+            <div class="files">
+              <a class="btn primary" href="https://github.com/Volland/self-lang-rs/releases/latest/download/SelfWorld-macOS.dmg">Download for Mac <small>.dmg</small></a>
+            </div>
+            <p class="note">Open the disk image and drag Self World to Applications. The app isn't signed by Apple yet, so the first time, right-click it and choose <b>Open</b> — or run <code>xattr -dr com.apple.quarantine "/Applications/Self World.app"</code>.</p>
+          </div>
+          <div class="card" data-os="win">
+            <span class="yours">Your system</span>
+            <div class="emoji">🪟</div>
+            <h3>Windows</h3>
+            <p class="meta">Windows 10 or 11 · 64-bit</p>
+            <div class="files">
+              <a class="btn primary" href="https://github.com/Volland/self-lang-rs/releases/latest/download/SelfWorld-Windows-Setup.exe">Installer <small>.exe</small></a>
+              <a class="btn" href="https://github.com/Volland/self-lang-rs/releases/latest/download/SelfWorld-Windows.zip">Portable, no install <small>.zip</small></a>
+            </div>
+            <p class="note">The installer adds Self World to the Start menu, with an uninstaller. If SmartScreen warns about an unknown publisher, choose <b>More info → Run anyway</b>.</p>
+          </div>
+          <div class="card" data-os="linux">
+            <span class="yours">Your system</span>
+            <div class="emoji">🐧</div>
+            <h3>Linux</h3>
+            <p class="meta">x86-64 · X11 or Wayland</p>
+            <div class="files">
+              <a class="btn primary" href="https://github.com/Volland/self-lang-rs/releases/latest/download/SelfWorld-Linux-x86_64.AppImage">AppImage <small>any distribution</small></a>
+              <a class="btn" href="https://github.com/Volland/self-lang-rs/releases/latest/download/SelfWorld-Linux-amd64.deb">Debian / Ubuntu <small>.deb</small></a>
+              <a class="btn" href="https://github.com/Volland/self-lang-rs/releases/latest/download/SelfWorld-Linux-x86_64.tar.gz">Archive <small>.tar.gz</small></a>
+            </div>
+            <p class="note">AppImage: <code>chmod +x SelfWorld-Linux-x86_64.AppImage</code>, then run it. The .deb installs with <code>sudo apt install ./SelfWorld-Linux-amd64.deb</code>.</p>
+          </div>
+        </div>
+        <p class="more">Or <a href="try/">run it in your browser</a> — nothing to install. Older versions and release notes: <a href="https://github.com/Volland/self-lang-rs/releases">all releases</a>. Building from source works too: <a href="https://github.com/Volland/self-lang-rs#run-it-from-source">see the README</a>.</p>
+      </div>
+    </section>
+
     <div class="wrap final">
       <h2>Ready to play in a world of objects?</h2>
       <p>Open the full Self World desktop: outliners for every object, a shell, Morphic windows and buttons made of Self objects, bouncing balls, and the original Self file format.</p>
       <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
         <a class="btn primary" href="try/">Open the Self desktop ▶</a>
+        <a class="btn" href="#download">Download for your desktop ↓</a>
         <a class="btn" href="play/">Or a plain playground</a>
       </div>
     </div>
@@ -461,10 +522,25 @@ Object.setPrototypeOf(rex, animal); // same trick</code></pre></div>
   <footer>
     <div class="wrap">
       <span>Self World — an independent Self implementation in Rust. Self was created by David Ungar and Randall B. Smith.</span>
-      <span><a href="play/">Playground</a> · <a href="book/">Book</a> · <a href="try/">Desktop</a> · <a href="https://github.com/Volland/self-lang-rs">GitHub</a> · <a href="https://selflanguage.org">selflanguage.org</a></span>
+      <span><a href="play/">Playground</a> · <a href="#download">Download</a> · <a href="book/">Book</a> · <a href="try/">Desktop</a> · <a href="https://github.com/Volland/self-lang-rs">GitHub</a> · <a href="https://selflanguage.org">selflanguage.org</a></span>
     </div>
   </footer>
 
+  <script>
+    // Highlight the download for the visitor's system (the page works the same without this).
+    (function () {
+      try {
+        var p = ((navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '') + ' ' + navigator.userAgent;
+        var os = /android|iphone|ipad|ipod/i.test(p) ? null
+               : /win/i.test(p) ? 'win'
+               : /mac/i.test(p) ? 'mac'
+               : /linux|x11|cros/i.test(p) ? 'linux' : null;
+        if (!os) return;
+        var card = document.querySelector('.downloads .card[data-os="' + os + '"]');
+        if (card) { card.classList.add('mine'); card.parentNode.insertBefore(card, card.parentNode.firstChild); }
+      } catch (e) {}
+    })();
+  </script>
   <script type="module">
     // The tutorial runs on the same Rust/WebAssembly Self engine as the desktop,
     // loaded the first time someone presses Run.

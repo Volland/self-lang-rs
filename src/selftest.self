@@ -101,6 +101,53 @@ lobby _AddSlots: (|
         check: 'buttons run their action' Gives: 1 By: [ | n. b | n: 0. b: buttonMorph copyLabel: 'x' Action: [ n: n + 1 ]. b click. n ].
         check: 'deleting a morph' Gives: 0 By: [ | p. c | p: morph copy. c: morph copy. p addMorph: c. c delete. p morphs size ].
 
+        "protocol carried over from the original core world"
+        check: 'untilTrue: runs the body first' Gives: 5 By: [ | i | i: 0. [ i: i + 1 ] untilTrue: [ i >= 5 ]. i ].
+        check: 'loopExit' Gives: 10 By: [ | i | i: 0. [| :exit | i: i + 1. i = 10 ifTrue: [ exit value ] ] loopExit. i ].
+        check: 'rounding divisions' Gives: '4 3 3' By: [ (17 /+ 5) printString, ' ', (17 /- 5) printString, ' ', (17 /~ 5) printString ].
+        check: 'compare:IfLess:Equal:Greater:' Gives: 'gt' By: [ 5 compare: 3 IfLess: 'lt' Equal: 'eq' Greater: 'gt' ].
+        check: 'printStringPrecision:' Gives: '3.14' By: [ 3.14159 printStringPrecision: 2 ].
+        check: 'factors' Gives: '(2, 2, 5, 5)' By: [ 100 factors printString ].
+        check: 'doFirst:Middle:Last:IfEmpty:' Gives: 'F1M2L3' By: [ | r | r: ''.
+          (1 & 2 & 3) asVector doFirst: [| :e | r: r, 'F', e printString ] Middle: [| :e | r: r, 'M', e printString ]
+                                   Last: [| :e | r: r, 'L', e printString ] IfEmpty: [ r: 'E' ].
+          r ].
+        check: 'ifNone:IfOne:IfMany:' Gives: 'many' By: [ (7 & 8) asVector ifNone: 'none' IfOne: [| :e | e ] IfMany: 'many' ].
+        check: 'joinUsing:' Gives: 'a, b, c' By: [ ('a' & 'b' & 'c') asVector joinUsing: ', ' ].
+        check: 'reduceWith:' Gives: 24 By: [ (1 & 2 & 3 & 4) asVector reduceWith: [| :a. :b | a * b ] ].
+        check: 'stable merge sort' Gives: '(\'b1\', \'a1\', \'a2\', \'b2\')' By: [
+          (('b1' & 'a2' & 'b2' & 'a1') asVector copySortBy: [| :x. :y | (x at: 1) < (y at: 1) ]) printString ].
+        check: 'sets keep one of each' Gives: 'set(1, 2, 3)' By: [ (1 & 2 & 2 & 3 & 1) asVector asSet printString ].
+        check: 'intersect:' Gives: '(2, 4)' By: [ ((1 & 2 & 3 & 4) asVector intersect: (2 & 4 & 6) asVector) printString ].
+        check: 'lists are indexable' Gives: 'list(2, 3)' By: [ ((1 & 2 & 3 & 4) asList copyFrom: 1 UpTo: 3) printString ].
+        check: 'addFirst:' Gives: 'list(0, 1, 2)' By: [ | l | l: (1 & 2) asList. l addFirst: 0. l printString ].
+        check: 'at:IfAbsentPut:' Gives: 'one' By: [ | d | d: dictionary copyRemoveAll.
+          d at: 1 IfAbsentPut: [ 'one' ]. d at: 1 IfAbsentPut: [ 'uno' ] ].
+        check: 'string prefixes' Gives: 'hello' By: [ 'hello.self' copyWithoutSuffix: '.self' ].
+        check: 'pattern matching' Gives: true By: [ 'world.self' matchesPattern: 'w*.s?lf' ].
+        check: 'tokens' Gives: 3 By: [ '  one two\tthree ' asTokensSeparatedByWhiteSpace size ].
+        check: 'sendTo:With:' Gives: 7 By: [ '+' sendTo: 3 With: 4 ].
+        check: 'point arithmetic with numbers' Gives: '4@5' By: [ ((3 @ 4) + 1) printString ].
+        check: 'rectangles' Gives: '(5@5) # (10@10)' By: [ (((0 @ 0) # (10 @ 10)) intersect: ((5 @ 5) # (20 @ 20))) printString ].
+        check: 'rectangle area' Gives: 24 By: [ ((0 @ 0) ## (4 @ 6)) area ].
+
+        "unwind protection, files and saving objects"
+        check: 'onReturn: runs on a normal return' Gives: 11 By: [ | r | r: 0. [ r: 1 ] onReturn: [ r: r + 10 ]. r ].
+        check: 'onReturn: runs on an error too' Gives: 'cleaned' By: [ | r | [ [ 1 / 0 ] onReturn: [ r: 'cleaned' ] ] onError: [ ]. r ].
+        check: 'loopExitContinue' Gives: '135' By: [ | n. log | n: 0. log: ''.
+          [| :exit. :continue | n: n + 1. n > 6 ifTrue: [ exit value ]. n even ifTrue: [ continue value ]. log: log, n printString ] loopExitContinue.
+          log ].
+        check: 'vectors compare their elements' Gives: true By: [ (1 & 2) asVector = (1 & 2) asVector ].
+        check: 'lines' Gives: 2 By: [ ('a b', '\n', 'c d') lines size ].
+        check: 'storeString rebuilds an object' Gives: 7 By: [ ((| parent* = traits clonable. x <- 3. y = 4. sum = ( x + y ) |) storeString eval) sum ].
+        check: 'fileOut changes' Gives: true By: [ fileOut changes includesSubstring: 'Objects saved from Self World' ].
+
+        "morphs for building apps"
+        check: 'list morphs select' Gives: 'b' By: [ | l | l: listMorph copyItems: ('a' & 'b') asVector. l select: 1. l selection ].
+        check: 'drop-downs start on their first choice' Gives: 'x' By: [ (dropDownMorph copyChoices: ('x' & 'y') asVector) selected ].
+        check: 'clicks with a position' Gives: '3@4' By: [ | m | m: canvasMorph copy.
+          m _AddSlots: (| got <- nil. clickAt: p = ( got: p ) |). m clickAtX: 3 Y: 4. m got printString ].
+
         "original Self file format"
         check: 'bootstrap paths' Gives: true By: [ (bootstrap stub -> 'globals' -> 'true' -> ()) == true ].
         check: 'eval' Gives: 7 By: [ '3 + 4' eval ].

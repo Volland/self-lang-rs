@@ -1,0 +1,103 @@
+# Builds the Self World installers for macOS, Windows and Linux.
+#
+# Push a tag such as v0.2.0 to publish them on a GitHub Release:
+#   git tag v0.2.0 && git push origin v0.2.0
+# The file names never change between versions, so the website can link to
+#   https://github.com/Volland/self-lang-rs/releases/latest/download/<name>
+# Run it by hand (Actions > release > Run workflow) to only build them as
+# workflow artifacts, without publishing anything.
+name: release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --release
+      - name: Universal app and disk image
+        run: ./scripts/package-mac.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SelfWorld-macOS
+          path: target/dist/SelfWorld-macOS.dmg
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --release
+      - name: Installer and portable zip
+        shell: pwsh
+        run: ./scripts/package-windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SelfWorld-Windows
+          path: |
+            target/dist/SelfWorld-Windows-Setup.exe
+            target/dist/SelfWorld-Windows.zip
+          if-no-files-found: error
+
+  linux:
+    # the oldest supported Ubuntu, so the program runs on older distributions too
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Libraries
+        run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev libgl1-mesa-dev libwayland-dev libx11-dev file
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deb
+      - run: cargo test --release
+      - name: AppImage, .deb and .tar.gz
+        run: ./scripts/package-linux.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SelfWorld-Linux
+          path: |
+            target/dist/SelfWorld-Linux-x86_64.AppImage
+            target/dist/SelfWorld-Linux-amd64.deb
+            target/dist/SelfWorld-Linux-x86_64.tar.gz
+          if-no-files-found: error
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [macos, windows, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - run: ls -la dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Self World ${{ github.ref_name }}
+          generate_release_notes: true
+          make_latest: true
+          body: |
+            Downloads for every desktop — or run it in your browser: https://volland.github.io/self-lang-rs/try/
+
+            | | |
+            |---|---|
+            | macOS 11+ (Apple silicon and Intel) | `SelfWorld-macOS.dmg` — not signed: the first time, right-click the app and choose Open |
+            | Windows 10/11 | `SelfWorld-Windows-Setup.exe` (installer) or `SelfWorld-Windows.zip` (portable) — SmartScreen: More info → Run anyway |
+            | Linux x86-64 | `SelfWorld-Linux-x86_64.AppImage`, `SelfWorld-Linux-amd64.deb` or `SelfWorld-Linux-x86_64.tar.gz` |
+          files: dist/*
+          fail_on_unmatched_files: true

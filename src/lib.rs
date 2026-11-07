@@ -2,6 +2,7 @@
 //! with a modern outliner-based desktop that runs natively and on the web.
 
 pub mod app;
+pub mod fileout;
 pub mod lexer;
 pub mod morphic;
 pub mod parser;

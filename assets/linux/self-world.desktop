@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Self World
+GenericName=Self programming environment
+Comment=The Self programming language with an outliner desktop and Morphic
+Exec=self-world
+Icon=self-world
+Terminal=false
+Categories=Development;IDE;
+Keywords=Self;Smalltalk;prototype;objects;Morphic;
+StartupWMClass=self-world

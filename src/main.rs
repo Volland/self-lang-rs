@@ -4,7 +4,28 @@
 //!          `self-world --repl`     a text read-eval-print loop
 //!          `self-world -e 'code'`  evaluates one expression and prints it
 //!          `self-world file.self`  runs a file of Self code
+//!          `self-world --app f.self` runs a Self program's morphs as an app
 //! Web:     started from index.html on the `the_canvas_id` canvas.
+
+// On Windows the release build is a windowed program, so no console window
+// opens next to the desktop; the text modes re-attach to the console they
+// were started from (see `attach_console`).
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
+
+/// Windows: when started from a terminal, write the text modes' output there.
+#[cfg(all(windows, not(debug_assertions)))]
+fn attach_console() {
+    extern "system" {
+        fn AttachConsole(process_id: u32) -> i32;
+    }
+    const ATTACH_PARENT_PROCESS: u32 = u32::MAX;
+    unsafe {
+        AttachConsole(ATTACH_PARENT_PROCESS);
+    }
+}
+#[cfg(not(all(windows, not(debug_assertions))))]
+#[allow(dead_code)]
+fn attach_console() {}
 
 #[cfg(not(target_arch = "wasm32"))]
 mod cli {
@@ -39,7 +60,7 @@ mod cli {
 
     /// Returns true if the arguments asked for a text mode (and it ran).
     pub fn run(args: &[String]) -> bool {
-        if args.is_empty() || args[0] == "--open" {
+        if args.is_empty() || args[0] == "--open" || args[0] == "--app" {
             return false;
         }
         let mut vm = Vm::new();
@@ -59,6 +80,7 @@ mod cli {
             println!("self-world FILE.self  load and run files of Self code (add --repl to keep going)");
             println!("self-world --test     run the built-in self-test");
             println!("self-world --open FILE.self   open the desktop with files loaded");
+            println!("self-world --app FILE.self    run files that build morphs as an app (world only)");
             return true;
         }
         if args[0] == "--test" {
@@ -159,12 +181,22 @@ mod cli {
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if !args.is_empty() && args[0] != "--open" && args[0] != "--app" {
+        attach_console();
+    }
     if cli::run(&args) {
         return Ok(());
     }
+    // the app icon, as raw 256x256 RGBA pixels (made from assets/icons/icon-256.png)
+    let icon = eframe::egui::IconData {
+        rgba: include_bytes!("../assets/icons/icon-256.rgba").to_vec(),
+        width: 256,
+        height: 256,
+    };
     let options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
             .with_title("Self World")
+            .with_icon(std::sync::Arc::new(icon))
             .with_inner_size([1360.0, 860.0])
             .with_min_inner_size([520.0, 380.0]),
         ..Default::default()

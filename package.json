@@ -1,6 +1,6 @@
 {
   "name": "self-world",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "The Self programming language in Rust, with a modern outliner desktop for the web and Mac, Linux and Windows.",
   "type": "module",

@@ -203,7 +203,7 @@ impl Morphic {
             let kind = gets(vm, m, "morphKind");
             match kind.as_str() {
                 "window" => {}
-                "rectangle" | "circle" | "label" => self.draw_shape(ui, vm, area.min, m, c, 0),
+                "rectangle" | "circle" | "label" | "line" => self.draw_shape(ui, vm, area.min, m, c, 0),
                 _ => {
                     // a widget placed directly in the world floats at its position
                     let pos = area.min + Vec2::new(getf(vm, m, "x", 0.0), getf(vm, m, "y", 0.0));
@@ -224,17 +224,35 @@ impl Morphic {
         }
         let kind = gets(vm, m, "morphKind");
         let (x, y) = (getf(vm, m, "x", 0.0), getf(vm, m, "y", 0.0));
-        let (w, h) = (getf(vm, m, "width", 40.0).max(1.0), getf(vm, m, "height", 40.0).max(1.0));
-        let rect = Rect::from_min_size(origin + Vec2::new(x, y), Vec2::new(w, h));
+        let (raw_w, raw_h) = (getf(vm, m, "width", 40.0), getf(vm, m, "height", 40.0));
+        let (w, h) = (raw_w.max(1.0), raw_h.max(1.0));
+        let start = origin + Vec2::new(x, y);
+        let line_w = getf(vm, m, "lineWidth", 3.0).clamp(0.5, 60.0);
+        let rect = if kind == "line" {
+            Rect::from_two_pos(start, start + Vec2::new(raw_w, raw_h)).expand(line_w / 2.0 + 4.0)
+        } else {
+            Rect::from_min_size(start, Vec2::new(w, h))
+        };
         let painter = ui.painter().clone();
         let col = self.color(vm, m, c, c.accent);
         let id = Id::new(("morph", id_of(m)));
         let resp = ui.interact(rect, id, Sense::click_and_drag());
+        let border = self.border(vm, m, c);
         match kind.as_str() {
             "circle" => {
                 painter.circle_filled(rect.center(), w.min(h) / 2.0, col);
+                if let Some(b) = border {
+                    painter.circle_stroke(rect.center(), w.min(h) / 2.0 - b.width / 2.0, b);
+                }
                 if resp.hovered() {
                     painter.circle_stroke(rect.center(), w.min(h) / 2.0 + 1.5, Stroke::new(1.5, c.text));
+                }
+            }
+            "line" => {
+                let col = self.color(vm, m, c, c.text);
+                painter.line_segment([start, start + Vec2::new(raw_w, raw_h)], Stroke::new(line_w, col));
+                if resp.hovered() {
+                    painter.circle_stroke(start, line_w + 2.0, Stroke::new(1.0, c.faint));
                 }
             }
             "label" => {
@@ -244,9 +262,13 @@ impl Morphic {
                 painter.text(rect.min, Align2::LEFT_TOP, text, FontId::proportional(size), col);
             }
             "rectangle" => {
-                painter.rect_filled(rect, CornerRadius::same(6), col);
+                let radius = CornerRadius::same(num(get(vm, m, "cornerRadius")).unwrap_or(6.0).clamp(0.0, 255.0) as u8);
+                painter.rect_filled(rect, radius, col);
+                if let Some(b) = border {
+                    painter.rect_stroke(rect, radius, b, egui::StrokeKind::Inside);
+                }
                 if resp.hovered() {
-                    painter.rect_stroke(rect, CornerRadius::same(6), Stroke::new(1.5, c.text), egui::StrokeKind::Outside);
+                    painter.rect_stroke(rect, radius, Stroke::new(1.5, c.text), egui::StrokeKind::Outside);
                 }
             }
             _ => {
@@ -266,12 +288,70 @@ impl Morphic {
             }
         }
         if resp.clicked() {
-            self.send(vm, m, "click", vec![]);
+            self.click_at(vm, m, &resp, rect.min);
         }
         self.menu(&resp, vm, m);
+        if kind == "line" {
+            return;
+        }
         for k in kids(vm, m) {
             self.draw_shape(ui, vm, rect.min, k, c, depth + 1);
         }
+    }
+
+    /// `borderWidth` and `borderColor`, when a morph has them.
+    fn border(&mut self, vm: &mut Vm, m: Value, c: &Colors) -> Option<Stroke> {
+        let w = num(get(vm, m, "borderWidth")).filter(|w| *w > 0.0)?;
+        let col = get(vm, m, "borderColor")
+            .and_then(|v| vm.string_of(v))
+            .and_then(|s| parse_color(&s, c))
+            .unwrap_or(c.text);
+        Some(Stroke::new(w.min(40.0), col))
+    }
+
+    /// A click becomes `clickAtX:Y:` with the point inside the morph (its
+    /// default sends `clickAt:`, then `click`).
+    fn click_at(&mut self, vm: &mut Vm, m: Value, resp: &egui::Response, origin: Pos2) {
+        let p = resp.interact_pointer_pos().unwrap_or(origin) - origin;
+        self.send(vm, m, "clickAtX:Y:", vec![whole(p.x), whole(p.y)]);
+    }
+
+    /// Keys go to every morph (and the world) whose wantsKeys is true, as
+    /// `keyDown:` and `keyUp:` with names like 'A', 'Space' or 'ArrowLeft' -
+    /// unless a text field or shell is being typed in.
+    pub fn keys(&mut self, ctx: &egui::Context, vm: &mut Vm) {
+        if ctx.wants_keyboard_input() {
+            return;
+        }
+        let events: Vec<(String, bool)> = ctx.input(|i| {
+            i.events
+                .iter()
+                .filter_map(|e| match e {
+                    egui::Event::Key { key, pressed, .. } => Some((key.name().to_string(), *pressed)),
+                    _ => None,
+                })
+                .collect()
+        });
+        if events.is_empty() {
+            return;
+        }
+        let Some(world) = Self::world(vm) else { return };
+        let mut all = vec![world];
+        all.extend(Self::all_morphs(vm, world));
+        let targets: Vec<Value> = all.into_iter().filter(|m| getb(vm, *m, "wantsKeys")).collect();
+        for (key, down) in events {
+            for &m in &targets {
+                let k = vm.new_string(&key);
+                self.send(vm, m, if down { "keyDown:" } else { "keyUp:" }, vec![k]);
+            }
+        }
+    }
+
+    /// The world's title, set from Self to name the desktop window.
+    pub fn world_title(vm: &mut Vm) -> Option<String> {
+        let world = Self::world(vm)?;
+        let t = get(vm, world, "title")?;
+        vm.string_of(t).map(|s| s.to_string()).filter(|s| !s.is_empty())
     }
 
     fn menu(&mut self, resp: &egui::Response, vm: &mut Vm, m: Value) {
@@ -449,14 +529,115 @@ impl Morphic {
             "canvas" => {
                 let size = Vec2::new(getf(vm, m, "width", 320.0).max(10.0), getf(vm, m, "height", 200.0).max(10.0));
                 let bg = self.color(vm, m, c, c.background);
-                let (rect, r) = ui.allocate_exact_size(size, Sense::hover());
+                let (rect, r) = ui.allocate_exact_size(size, Sense::click());
                 ui.painter().rect_filled(rect, CornerRadius::same(8), bg);
+                if let Some(b) = self.border(vm, m, c) {
+                    ui.painter().rect_stroke(rect, CornerRadius::same(8), b, egui::StrokeKind::Inside);
+                }
                 let items = kids(vm, m);
                 let mut child = ui.new_child(egui::UiBuilder::new().max_rect(rect));
                 child.set_clip_rect(rect.intersect(ui.clip_rect()));
                 for k in items {
                     self.draw_shape(&mut child, vm, rect.min, k, c, depth + 1);
                 }
+                if r.clicked() {
+                    self.click_at(vm, m, &r, rect.min);
+                }
+                r
+            }
+            "textArea" => {
+                let current = gets(vm, m, "contents");
+                let (width, height) = (getf(vm, m, "width", 260.0), getf(vm, m, "height", 120.0));
+                let edit_id = Id::new(("morph-area-text", mid));
+                let focused = ui.ctx().memory(|mem| mem.has_focus(edit_id));
+                let buf = self.text_buf.entry(mid).or_insert_with(|| current.clone());
+                if !focused && *buf != current {
+                    *buf = current;
+                }
+                let rows = ((height - 8.0) / 18.0).max(2.0) as usize;
+                let r = ui.add(egui::TextEdit::multiline(buf).id(edit_id).desired_width(width).desired_rows(rows));
+                if r.changed() {
+                    let s = buf.clone();
+                    let v = vm.new_string(&s);
+                    self.send(vm, m, "contents:", vec![v]);
+                    self.send(vm, m, "changed", vec![]);
+                }
+                r
+            }
+            "list" => {
+                let items = get(vm, m, "items").and_then(|v| vm.vector_items(v)).unwrap_or_default();
+                let labels: Vec<String> = items.iter().map(|v| self.item_text(vm, *v)).collect();
+                let sel = num(get(vm, m, "selectedIndex")).map(|f| f as i64).unwrap_or(-1);
+                let (width, height) = (getf(vm, m, "width", 220.0), getf(vm, m, "height", 140.0));
+                let mut picked = None;
+                let r = egui::Frame::group(ui.style())
+                    .show(ui, |ui| {
+                        ui.set_width(width - 14.0);
+                        egui::ScrollArea::vertical().id_salt(("morph-list", mid)).max_height(height).auto_shrink([false, true]).show(ui, |ui| {
+                            if labels.is_empty() {
+                                ui.label(RichText::new("(no items)").color(c.faint));
+                            }
+                            for (i, l) in labels.iter().enumerate() {
+                                if ui.selectable_label(i as i64 == sel, l).clicked() {
+                                    picked = Some(i);
+                                }
+                            }
+                        });
+                    })
+                    .response;
+                if let Some(i) = picked {
+                    self.send(vm, m, "selectedIndex:", vec![Value::Int(i as i64)]);
+                    self.send(vm, m, "changed", vec![]);
+                }
+                r
+            }
+            "dropDown" => {
+                let choices = get(vm, m, "choices").and_then(|v| vm.vector_items(v)).unwrap_or_default();
+                let labels: Vec<String> = choices.iter().map(|v| self.item_text(vm, *v)).collect();
+                let selected = get(vm, m, "selected");
+                let sel_idx = selected.and_then(|s| {
+                    choices.iter().position(|c| c.same(s)).or_else(|| {
+                        let t = self.item_text(vm, s);
+                        labels.iter().position(|l| *l == t)
+                    })
+                });
+                let width = getf(vm, m, "width", 180.0);
+                let shown = sel_idx.map(|i| labels[i].clone()).unwrap_or_else(|| "Choose…".into());
+                let mut picked = None;
+                let r = egui::ComboBox::from_id_salt(("morph-dropdown", mid))
+                    .width(width)
+                    .selected_text(shown)
+                    .show_ui(ui, |ui| {
+                        for (i, l) in labels.iter().enumerate() {
+                            if ui.selectable_label(Some(i) == sel_idx, l).clicked() {
+                                picked = Some(i);
+                            }
+                        }
+                    })
+                    .response;
+                if let Some(i) = picked {
+                    self.send(vm, m, "selected:", vec![choices[i]]);
+                    self.send(vm, m, "changed", vec![]);
+                }
+                r
+            }
+            "progress" => {
+                let v = getf(vm, m, "value", 0.0);
+                let max = getf(vm, m, "max", 100.0);
+                let frac = if max.abs() > f32::EPSILON { (v / max).clamp(0.0, 1.0) } else { 0.0 };
+                let width = getf(vm, m, "width", 200.0);
+                ui.add(egui::ProgressBar::new(frac).desired_width(width).show_percentage())
+            }
+            "separator" => ui.separator(),
+            "line" => {
+                let (lw, lh) = (getf(vm, m, "width", 100.0), getf(vm, m, "height", 0.0));
+                let line_w = getf(vm, m, "lineWidth", 3.0).clamp(0.5, 60.0);
+                let size = Vec2::new(lw.abs().max(line_w), lh.abs().max(line_w));
+                let (rect, r) = ui.allocate_exact_size(size, Sense::click());
+                let col = self.color(vm, m, c, c.text);
+                let a = Pos2::new(if lw < 0.0 { rect.right() } else { rect.left() }, if lh < 0.0 { rect.bottom() } else { rect.top() });
+                let a = if lh.abs() < line_w { Pos2::new(a.x, rect.center().y) } else { a };
+                ui.painter().line_segment([a, a + Vec2::new(lw, lh)], Stroke::new(line_w, col));
                 r
             }
             "rectangle" | "circle" => {
@@ -469,7 +650,7 @@ impl Morphic {
                     ui.painter().rect_filled(rect, CornerRadius::same(6), col);
                 }
                 if r.clicked() {
-                    self.send(vm, m, "click", vec![]);
+                    self.click_at(vm, m, &r, rect.min);
                 }
                 r
             }
@@ -479,6 +660,14 @@ impl Morphic {
             }
         };
         self.menu(&resp, vm, m);
+    }
+
+    /// How a list or drop-down shows an item: strings as they are, other objects printed.
+    fn item_text(&self, vm: &mut Vm, v: Value) -> String {
+        match vm.string_of(v) {
+            Some(s) => s.to_string(),
+            None => vm.print_string(v),
+        }
     }
 
     /// Forget editing state for morphs that no longer exist.

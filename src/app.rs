@@ -207,6 +207,10 @@ enum Action {
     /// Load a Self source file (its text, and its folder when known).
     LoadFile { name: String, text: String, dir: Option<std::path::PathBuf> },
     PickFile,
+    /// Pick a Self file and run it as an app (the world only, tools hidden).
+    PickApp,
+    /// Save the objects added since start-up as a Self file.
+    SaveObjects,
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -232,7 +236,24 @@ pub struct SelfWorldApp {
     frame_no: u64,
     /// Native only: save a screenshot here after a short demo, then quit.
     shot_path: Option<String>,
+    /// App mode: only the world and its morphs are shown, so a Self program
+    /// that builds an interface runs like an ordinary app (`--app FILE.self`).
+    app_mode: bool,
+    /// The next file loaded starts app mode (World ▸ Run a Self file as an app).
+    app_on_next_load: bool,
+    /// Problems loading an app's files, shown along the bottom in app mode.
+    app_errors: Vec<String>,
+    /// The window title last set from `world title`.
+    title_shown: String,
 }
+
+/// Apps written entirely in Self (the files in examples/), built in so they
+/// run on the web too: (menu title, short name for `?app=`, file name, source).
+pub const APPS: &[(&str, &str, &str, &str)] = &[
+    ("A to-do list", "todo", "todo.self", include_str!("../examples/todo.self")),
+    ("Catch the stars (a game)", "catch", "catch.self", include_str!("../examples/catch.self")),
+    ("A sketch pad", "sketch", "sketch.self", include_str!("../examples/sketch.self")),
+];
 
 pub const EXAMPLES: &[(&str, &str)] = &[
     ("Big numbers", "100 factorial"),
@@ -286,6 +307,14 @@ pub const EXAMPLES: &[(&str, &str)] = &[
         "| w. canvas. size. row |\ncanvas: canvasMorph copy.\nsize: (sliderMorph copyMin: 10 Max: 80 Value: 30).\nrow: rowMorph copy.\nrow addMorph: (buttonMorph copyLabel: 'Add a circle' Action: [| c |\n  c: circleMorph copy.\n  c extent: size value @ size value.\n  c color: (('tomato' & 'gold' & 'teal' & 'blue' & 'pink') asVector at: (random integer: 5)).\n  c position: (random integer: 280) @ (random integer: 160).\n  canvas addMorph: c ]).\nrow addMorph: (buttonMorph copyLabel: 'Clear' Action: [\n  canvas morphs do: [| :m | m delete ] ]).\nw: windowMorph copyTitle: 'Drawing (drag the circles)'.\nw addMorph: row.\nw addMorph: size.\nw addMorph: canvas.\nw extent: 360 @ 330.\nw openInWorld",
     ),
     (
+        "Morphs: a list to pick from",
+        "| w. picked. list |\npicked: labelMorph copyText: 'Pick a planet'.\nlist: listMorph copyItems: ('Mercury' & 'Venus' & 'Earth' & 'Mars' & 'Jupiter') asVector.\nlist onSelect: [| :p | picked text: 'You picked ', p ].\nw: windowMorph copyTitle: 'Planets'.\nw addMorph: list.\nw addMorph: picked.\nw addMorph: ((dropDownMorph copyChoices: ('small' & 'large') asVector) onChange: [| :s | picked fontSize: (s = 'large' ifTrue: 28 False: 16) ]).\nw openInWorld",
+    ),
+    (
+        "Morphs: steer with the arrow keys",
+        "| ship |\nship: circleMorph copy.\nship color: 'gold'.\nship position: (world width / 2) @ (world height / 2).\nship _AddSlots: (| keyDown: k = (\n    k = 'ArrowLeft' ifTrue: [ x: x - 20 ].\n    k = 'ArrowRight' ifTrue: [ x: x + 20 ].\n    k = 'ArrowUp' ifTrue: [ y: y - 20 ].\n    k = 'ArrowDown' ifTrue: [ y: y + 20 ] ) |).\nship wantsKeys: true.\nship openInWorld.\n'Click the desktop, then use the arrow keys' printLine",
+    ),
+    (
         "Morphs: a morph that edits itself",
         "| box |\nbox: rectangleMorph copy.\nbox position: 300 @ 120.\nbox _AddSlots: (| clicks <- 0.\n  click = (\n    clicks: clicks + 1.\n    color: (('teal' & 'gold' & 'tomato') asVector at: clicks % 3).\n    width: width + 10 ) |).\nbox openInWorld.\nbox inspect",
     ),
@@ -310,19 +339,36 @@ impl SelfWorldApp {
             morphic: Default::default(),
             frame_no: 0,
             shot_path: None,
+            app_mode: false,
+            app_on_next_load: false,
+            app_errors: vec![],
+            title_shown: String::new(),
         };
         #[cfg(not(target_arch = "wasm32"))]
         {
             app.shot_path = std::env::var("SELF_WORLD_SCREENSHOT").ok();
-            // `self-world --open FILE.self ...` loads files into the desktop
+            // `self-world --open FILE.self ...` loads files into the desktop;
+            // `self-world --app FILE.self ...` runs them as an app (world only)
             let args: Vec<String> = std::env::args().skip(1).collect();
-            if let Some(i) = args.iter().position(|a| a == "--open") {
+            app.app_mode = args.iter().any(|a| a == "--app");
+            if let Some(i) = args.iter().position(|a| a == "--open" || a == "--app") {
                 for path in args[i + 1..].iter().filter(|a| !a.starts_with("--")) {
                     let p = std::path::PathBuf::from(path);
                     if let Ok(text) = std::fs::read_to_string(&p) {
                         let name = p.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
                         app.actions.push(Action::LoadFile { name, text, dir: p.parent().map(|d| d.to_path_buf()) });
                     }
+                }
+            }
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            // try/?app=todo opens one of the built-in apps in app mode
+            let search = js_sys::eval("location.search").ok().and_then(|v| v.as_string()).unwrap_or_default();
+            if let Some(want) = search.trim_start_matches('?').split('&').find_map(|kv| kv.strip_prefix("app=")) {
+                if let Some((_, _, file, src)) = APPS.iter().find(|(_, short, _, _)| *short == want) {
+                    app.app_mode = true;
+                    app.actions.push(Action::LoadFile { name: file.to_string(), text: src.to_string(), dir: None });
                 }
             }
         }
@@ -513,6 +559,12 @@ impl SelfWorldApp {
             }
             Err(e) => ShellEntry { src, result: e.msg, value: None, is_err: true, trace: vec![], printed, ms, notes: vec![] },
         };
+        if self.app_mode {
+            if entry.is_err {
+                self.app_errors.push(format!("{name}: {}", entry.result));
+            }
+            self.app_errors.extend(entry.notes.iter().map(|n| format!("{name}: {n}")));
+        }
         self.status = format!("loaded {name} in {:.0} ms · {} objects", ms, self.vm.object_count());
         if let Some(w) = self.wins.iter_mut().find(|w| w.id == shell_id) {
             w.focus = true;
@@ -600,6 +652,9 @@ impl SelfWorldApp {
         for m in std::mem::take(&mut self.morphic.messages) {
             self.transcript.push_str(&m);
             self.status = m.trim().to_string();
+            if self.app_mode {
+                self.app_errors.push(m.trim().to_string());
+            }
         }
         let near = ctx.screen_rect().center();
         for v in std::mem::take(&mut self.morphic.inspect) {
@@ -613,6 +668,80 @@ impl SelfWorldApp {
         }
         if self.morphic.any_stepping {
             ctx.request_repaint_after(std::time::Duration::from_millis(30));
+        }
+    }
+
+    // ------------------------------------------------------------ app mode
+
+    /// The slim bar shown in app mode: the app's title, and a way back to the tools.
+    fn app_bar(&mut self, ctx: &egui::Context) {
+        let p = self.pal();
+        egui::TopBottomPanel::top("app-bar")
+            .frame(egui::Frame::new().fill(p.panel).inner_margin(Margin::symmetric(12, 5)).stroke(Stroke::new(1.0, p.stroke)))
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    let title = if self.title_shown.is_empty() { "Self World".to_string() } else { self.title_shown.clone() };
+                    ui.label(RichText::new(title).strong());
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        if ui.button("🛠  Self World tools").on_hover_text("Show the shells, outliners and menus again").clicked() {
+                            self.app_mode = false;
+                            if self.wins.is_empty() {
+                                self.initialized_layout = false;
+                            }
+                        }
+                        let label = if self.dark { "☀" } else { "🌙" };
+                        if ui.button(label).on_hover_text("Light or dark").clicked() {
+                            self.dark = !self.dark;
+                            self.themed = false;
+                        }
+                    });
+                });
+            });
+        if !self.app_errors.is_empty() {
+            egui::TopBottomPanel::bottom("app-errors")
+                .frame(egui::Frame::new().fill(p.panel).inner_margin(Margin::symmetric(12, 8)).stroke(Stroke::new(1.0, p.error)))
+                .show(ctx, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.label(RichText::new("Problems loading the app").color(p.error).strong());
+                        if ui.small_button("Dismiss").clicked() {
+                            self.app_errors.clear();
+                        }
+                    });
+                    egui::ScrollArea::vertical().max_height(120.0).show(ui, |ui| {
+                        for e in &self.app_errors {
+                            ui.label(RichText::new(e).monospace().small());
+                        }
+                    });
+                });
+        }
+    }
+
+    /// World ▸ Save my objects as a Self file…
+    fn save_objects(&mut self) {
+        let text = self.vm.file_out_changes();
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let picked = rfd::FileDialog::new()
+                .set_title("Save my objects as a Self file")
+                .set_file_name("my-objects.self")
+                .add_filter("Self source", &["self"])
+                .save_file();
+            if let Some(path) = picked {
+                self.status = match std::fs::write(&path, text) {
+                    Ok(()) => format!("saved {}", path.display()),
+                    Err(e) => format!("couldn't save {}: {e}", path.display()),
+                };
+            }
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            // the browser saves it as a download
+            let f = js_sys::Function::new_with_args(
+                "name, text",
+                "const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type: 'text/plain'})); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);",
+            );
+            let _ = f.call2(&eframe::wasm_bindgen::JsValue::NULL, &"my-objects.self".into(), &text.into());
+            self.status = "saved my-objects.self (see your downloads)".into();
         }
     }
 
@@ -653,6 +782,14 @@ impl SelfWorldApp {
                         }
                         if ui.button("Load a Self file…").on_hover_text("Run a .self file; you can also drop files on the window").clicked() {
                             self.actions.push(Action::PickFile);
+                            ui.close_menu();
+                        }
+                        if ui.button("Run a Self file as an app…").on_hover_text("Load a .self file that builds morphs and show only the world, like an ordinary app").clicked() {
+                            self.actions.push(Action::PickApp);
+                            ui.close_menu();
+                        }
+                        if ui.button("Save my objects as a Self file…").on_hover_text("Everything you added to the lobby, globals and traits, written as Self source you can load again").clicked() {
+                            self.actions.push(Action::SaveObjects);
                             ui.close_menu();
                         }
                         if ui.button("Run the self-test").on_hover_text("Check that the language and world work").clicked() {
@@ -719,11 +856,24 @@ impl SelfWorldApp {
                             }
                         }
                         ui.separator();
+                        ui.label(RichText::new("Apps written in Self (run as an app)").small().color(p.faint));
+                        for (title, _, file, src) in APPS {
+                            if ui.button(*title).on_hover_text(format!("examples/{file}")).clicked() {
+                                self.app_on_next_load = true;
+                                self.actions.push(Action::LoadFile { name: file.to_string(), text: src.to_string(), dir: None });
+                                ui.close_menu();
+                            }
+                        }
+                        ui.separator();
                         if ui.button("Outliner on the world").clicked() {
                             let lobby = Value::Ref(self.vm.sp.lobby);
                             if let Ok(w) = self.vm.ui_send(lobby, "world", vec![]) {
                                 self.actions.push(Action::Inspect { from: None, value: w, near: Pos2::new(500.0, 120.0) });
                             }
+                            ui.close_menu();
+                        }
+                        if ui.button("Show only the world (app mode)").on_hover_text("Hide the tools; the bar at the top brings them back").clicked() {
+                            self.app_mode = true;
                             ui.close_menu();
                         }
                         if ui.button("Stop all stepping").clicked() {
@@ -796,7 +946,7 @@ impl SelfWorldApp {
             let rect = ui.max_rect();
             let painter = ui.painter();
             let step = 28.0;
-            let mut x = rect.left() - (rect.left() % step);
+            let mut x = if self.app_mode { rect.right() } else { rect.left() - (rect.left() % step) };
             while x < rect.right() {
                 let mut y = rect.top() - (rect.top() % step);
                 while y < rect.bottom() {
@@ -807,7 +957,7 @@ impl SelfWorldApp {
             }
             let colors = morph_colors(&p);
             self.morphic.draw_world(ui, &mut self.vm, &colors);
-            if self.wins.iter().all(|w| !w.open) {
+            if !self.app_mode && self.wins.iter().all(|w| !w.open) {
                 ui.centered_and_justified(|ui| {
                     ui.label(RichText::new("The world is empty. Open a shell or an outliner from the World menu.").color(p.faint));
                 });
@@ -1501,7 +1651,14 @@ impl SelfWorldApp {
             ui.label("As in the original Self and Smalltalk, what you see on the desktop can be ordinary objects called morphs. Their slots (x, y, width, color, text...) are read live, so changing a slot from code or an outliner changes the picture at once.");
             try_it(ui, "(circleMorph copy color: 'tomato') openInWorld", &mut acts);
             try_it(ui, "(windowMorph copyTitle: 'Hi') openInWorld", &mut acts);
-            ui.label("Give a morph a step method and send it startStepping to animate it; override click to react to clicks. Right-click any morph to inspect, duplicate or delete it. The Morphs menu has more.");
+            ui.label("Give a morph a step method and send it startStepping to animate it; override click (or clickAt: for the point) to react to clicks, and set wantsKeys to true to get keyDown: and keyUp:. Right-click any morph to inspect, duplicate or delete it. The Morphs menu has more.");
+            ui.label("Morphs to build with: labelMorph, buttonMorph, textFieldMorph, textAreaMorph, sliderMorph, checkboxMorph, dropDownMorph, listMorph, progressMorph, separatorMorph, rowMorph, columnMorph, windowMorph, and canvasMorph with rectangleMorph, circleMorph and lineMorph inside.");
+            try_it(ui, "| w | w: windowMorph copyTitle: 'Pick one'. w addMorph: ((listMorph copyItems: ('red' & 'green' & 'blue') asVector) onSelect: [| :c | c printLine ]). w openInWorld", &mut acts);
+            section(ui, "Apps written in Self");
+            ui.label("A .self file that builds morphs is an app. World ▸ Run a Self file as an app… (or self-world --app file.self) shows only the world and its morphs; set world title: to name the window. The examples folder has a to-do list, a game and a sketch pad.");
+            section(ui, "Saving your objects");
+            ui.label("World ▸ Save my objects as a Self file… writes everything you added to the lobby, globals and traits as Self source; load the file again in any world. From code: fileOut changes, fileOut object: x, or x storeString.");
+            try_it(ui, "fileOut changes", &mut acts);
             section(ui, "Your own files, and testing");
             ui.label("Write Self in any text editor, save it as a .self file, then use World ▸ Load a Self file… or drop it on the window. Statements end with a period or at the end of a line, as in the original Self files, so files from the original Self world can be loaded too.");
             try_it(ui, "selfTest run", &mut acts);
@@ -1540,8 +1697,19 @@ impl SelfWorldApp {
                         }
                     }
                 }
-                Action::LoadFile { name, text, dir } => self.load_file(name, text, dir),
+                Action::LoadFile { name, text, dir } => {
+                    if std::mem::take(&mut self.app_on_next_load) {
+                        self.app_mode = true;
+                        self.app_errors.clear();
+                    }
+                    self.load_file(name, text, dir)
+                }
                 Action::PickFile => self.pick_file(),
+                Action::PickApp => {
+                    self.app_on_next_load = true;
+                    self.pick_file();
+                }
+                Action::SaveObjects => self.save_objects(),
                 Action::RunInShell(code) => {
                     let id = self.shell_id();
                     let (get_it, code) = match code.strip_prefix('\u{1}') {
@@ -1663,18 +1831,34 @@ impl eframe::App for SelfWorldApp {
             apply_theme(ctx, self.dark);
             self.themed = true;
         }
-        self.top_bar(ctx);
+        if self.app_mode {
+            self.app_bar(ctx);
+        } else {
+            self.top_bar(ctx);
+        }
         if !self.initialized_layout {
-            let r = ctx.available_rect();
-            self.initial_layout(r);
+            if !self.app_mode {
+                let r = ctx.available_rect();
+                self.initial_layout(r);
+            }
             self.initialized_layout = true;
         }
+        self.morphic.keys(ctx, &mut self.vm);
         self.morphic.step(&mut self.vm);
         self.canvas(ctx);
         let colors = morph_colors(&self.pal());
         self.morphic.show_windows(ctx, &mut self.vm, &colors);
-        self.windows(ctx);
-        self.arrows(ctx);
+        if !self.app_mode {
+            self.windows(ctx);
+            self.arrows(ctx);
+        }
+        if self.frame_no % 4 == 1 {
+            let t = crate::morphic::Morphic::world_title(&mut self.vm).unwrap_or_else(|| "Self World".into());
+            if t != self.title_shown {
+                ctx.send_viewport_cmd(egui::ViewportCommand::Title(t.clone()));
+                self.title_shown = t;
+            }
+        }
         self.morph_events(ctx);
         self.incoming_files(ctx);
         self.handle_actions();
